@@ -1,127 +1,73 @@
 # M1: Frontend & reporting
 
-**Assignee:** @member1 — placeholder; choose the actual teammate in GitHub's Assignees sidebar.
+**Assignee:** Unassigned role slot. Choose the teammate only after the team agrees; collaborator invitations are not role assignments.
 
-**Mission:** Build a clear phone-friendly journey from photo and location to human review, publication and an editable complaint.
+**Mission:** Make one clear phone-friendly journey from image selection to a reviewed report and copied complaint.
 
 **Owned files:** app/page.tsx; components/report/*; components/complaint/*
 
-**Reviewer:** Member 4 reviews usability; Member 2 reviews API integration.
+**Reviewer:** M4 checks the full journey; M2 checks request contracts. Role slots are unassigned.
 
-Follow tasks in order. Hours are elapsed from kickoff; tasks sharing a window are parallel work, not additive durations. Complete the 24-hour demo before optional hardening.
+Follow six tasks in order. H0 is 10:00 IST on 31 October 2026; H8 is 18:00. Roles run in parallel. Gates: H1 setup, H3 integrated slice, H5 core or manual fallback, H7 freeze, H8 demo ready. Post-event work is deferred.
 
 Check each box only when its Done condition passes. Add a comment with task ID, PR/commit, screenshot/test evidence and reviewer confirmation. A checkbox does not run a test. Leave blocked/incomplete work unchecked and name the blocker.
 
 The application has not been built by this planning pack; the paths below describe future implementation work.
 
-- [ ] **M1-01 — Agree on screens and API contracts** · H0-1
+- [ ] **M1-01 — Agree the screens and shared inputs** · H0-1
 
-  1. Read lib/contracts.ts with M2; agree on upload, analyzing, review, publishing, success and error states.
-  2. Sketch these states for app/page.tsx; agree with M4 on selected-location and after-publish callbacks.
+  1. Agree the draft, review and public-report types with M2; use M3's labeled fixtures.
+  2. Sketch upload -> review -> published screens; reserve a client-only map slot for M4.
 
-  **Done:** Team agrees on payloads, labels, mandatory human confirmation and map callbacks before coding.
+  **Done:** M2 and M4 accept the component props and sample payload; role ownership is recorded.
 
-  **Handoff:** M2 provides contracts/session helper; M4 confirms map props.
+  **Handoff:** Send screen props and needed API fields to M2/M4.
 
-- [ ] **M1-02 — Build the reporting page shell** · H1-2
+- [ ] **M1-02 — Build photo and location input** · H1-2
 
-  1. In app/page.tsx and components/report/ReportWorkspace.tsx, create a phone-first page with labeled steps and visible progress.
-  2. Keep browser APIs in the client workspace; reserve a client-only dynamic map slot for M4 with SSR disabled.
+  1. Add one JPEG/PNG/WebP file input, preview and a clear 3 MB size limit; reject an unsupported or oversized file.
+  2. Collect latitude/longitude with a map pin or editable coordinates. Offer geolocation only with manual fallback.
 
-  **Done:** Page opens locally and on the initial HTTPS deployment without hydration or window errors.
+  **Done:** A supported photo and corrected location can be submitted; denied GPS and invalid files show useful messages.
 
-  **Handoff:** M4 receives the map slot; M2 deploys the shared branch.
+  **Handoff:** M2 receives the agreed multipart payload; M4 receives the selected-location props.
 
-- [ ] **M1-03 — Add camera, file selection and preview** · H2-3
+- [ ] **M1-03 — Complete mandatory review at the H3 gate** · H2-3
 
-  1. Create components/report/PhotoInput.tsx with camera/file inputs, preview, replacement and clear supported-format guidance.
-  2. Accept JPEG/PNG/WebP, reject sources over 8 MB, and resize/compress to at most 1600 px and 3 MB before submission; show a useful error if this fails.
+  1. Submit with the anonymous session token; show loading and failure without claiming a draft was saved on error.
+  2. Render editable labels, description and location with live/manual/sample labels; wire a separate explicit Publish confirmation to M2's route.
 
-  **Done:** Phone photo and file uploads preview correctly; unsupported and oversized files cannot proceed.
+  **Done:** The H3 slice persists a reviewed report and refreshes M4's map; failed saving and unconfirmed drafts never appear as published success.
 
-  **Handoff:** M2 receives the compressed image; server still validates and strips metadata.
+  **Handoff:** Run the H3 slice with M2/M4 and record the remaining blocker, if any.
 
-- [ ] **M1-04 — Let users confirm the location** · H3-4
+- [ ] **M1-04 — Publish once and create complaint text** · H3-5
 
-  1. In components/report/LocationStep.tsx, request browser location only after the user taps the location button.
-  2. Connect M4's picker; allow tap/drag correction and manual pin selection when permission is denied or location is unavailable.
+  1. Call M2's publish route for the same draft ID; disable repeated clicks and show success only after persistence succeeds.
+  2. Explain that confirmed description and selected coordinates become public while the photo stays private; add editable complaint text and Copy.
 
-  **Done:** Confirmed valid coordinates are visible; denying GPS permission still allows completing a report.
+  **Done:** A reviewed report survives reload and appears on M4's map; copying uses confirmed fields and never sends a complaint.
 
-  **Handoff:** Depends on M4-04; pass confirmed latitude/longitude to M2's draft route.
+  **Handoff:** M4 runs the complete H5 journey; M2 gets exact error cases.
 
-- [ ] **M1-05 — Submit a private draft reliably** · H4-6
+- [ ] **M1-05 — Check the deployed phone journey** · H5-7
 
-  1. In ReportWorkspace.tsx, obtain M2's anonymous session and POST multipart image, coordinates, optional note and client_request_id with the bearer token.
-  2. Disable repeat clicks; retain the same UUID and values for timeout retries. A new-report action creates a new UUID.
+  1. Run the final HTTPS URL on a phone with one supported photo, manual coordinates, review, publish and complaint copy.
+  2. Fix only blockers: unreadable controls, denied GPS, failed upload, unavailable AI, publish error and sample labeling.
 
-  **Done:** H6 mocked slice receives a draft; errors preserve inputs and never display false submission success.
+  **Done:** A teammate completes the phone flow; a failed operation never shows false success and public-data wording is visible.
 
-  **Handoff:** M2 supplies idempotent draft route; M3's mock responses remain visibly sample data.
+  **Handoff:** Give M4 the verified phone/browser and any limitations before H7 freeze.
 
-- [ ] **M1-06 — Build mandatory human review** · H6-8
+- [ ] **M1-06 — Freeze screens and support rehearsal** · H7-8
 
-  1. Create components/report/ReviewPanel.tsx showing the photo, visible-cue evidence, analysis source and editable labels/location.
-  2. Allow multiple pollution labels; make unclear/no_visible_pollution exclusive. Require explicit confirmation before publishing; manual fallback starts as unclear.
+  1. Merge reviewed UI work, record the deployed commit and avoid new features after H7.
+  2. Help capture a backup and rehearse the active live/manual/sample mode; attach actual evidence to the workstream Issue.
 
-  **Done:** User can correct AI output; unchecked confirmation blocks publication and no confidence or safety claim is shown.
+  **Done:** The UI used in rehearsal matches the frozen deployment; incomplete work stays unchecked and every shown mode is labeled.
 
-  **Handoff:** M3 checks label/evidence wording; M2 validates the same rules server-side.
-
-- [ ] **M1-07 — Publish the reviewed draft** · H8-10
-
-  1. Wire ReviewPanel.tsx to PATCH /api/reports/{id} with action=publish, edited labels/location and the bearer token.
-  2. Show success only after the response; pass the published report to the workspace and trigger M4's immediate map refresh.
-
-  **Done:** One reviewed draft becomes one published report; failed publication retains edits; mock reports enter only the sample view.
-
-  **Handoff:** M2 updates the existing row; M4 verifies the new marker and count.
-
-- [ ] **M1-08 — Add editable complaint copy and download** · H10-12
-
-  1. Create components/complaint/ComplaintDraft.tsx using the server's safe complaint_text after publication.
-  2. Allow local editing, Copy and Download .txt; explain that the user verifies the recipient and sends the complaint separately.
-
-  **Done:** Both export actions work; private notes/contact details are absent from the public template and local edits stay local.
-
-  **Handoff:** M2 supplies deterministic wording; M4 includes this screen in the H12 complete-flow gate.
-
-- [ ] **M1-09 — Make recovery paths understandable** · H12-15
-
-  1. Check report components for denied GPS, canceled selection, invalid images, draft failure, vision timeout and failed publication.
-  2. Add concise recovery instructions, retained inputs and safe Retry/New report actions; distinguish AI fallback from failed draft creation.
-
-  **Done:** Each failure has a usable next action; retries cannot silently create duplicate submissions.
-
-  **Handoff:** M4 records failures; M2/M3 resolve backend or adapter problems.
-
-- [ ] **M1-10 — Check phone layout and accessibility** · H15-18
-
-  1. Check report/complaint components at 360 px width and with keyboard navigation; fix clipped controls and misplaced focus.
-  2. Use text labels, readable contrast and status announcements; keep sample badges and the visual-suggestion explanation visible.
-
-  **Done:** All required actions work without hover, color-only meaning or horizontal scrolling on a phone.
-
-  **Handoff:** M4 reviews the complete phone journey; M2 merges the verified frontend changes.
-
-- [ ] **M1-11 — Run the deployed photo-to-complaint journey** · H18-22
-
-  1. On the deployed HTTPS URL, capture/select a real photo, confirm a pin, review labels, publish and copy/download the complaint.
-  2. Repeat a denied-location or AI-fallback path; fix frontend defects and send screenshots/results to M4 for docs/demo.md.
-
-  **Done:** M4 witnesses a successful phone flow and a recoverable failure; published data appears on a second browser.
-
-  **Handoff:** M2 checks deployed API/session behavior; M4 collects final acceptance evidence.
-
-- [ ] **M1-12 — Freeze the frontend and hand off the demo** · H22-24
-
-  1. Merge reviewed frontend fixes; verify the final deployment and rehearse the photo, review and complaint steps with M4.
-  2. Update the M1 GitHub Issue checkboxes with evidence links; record any remaining limitation instead of marking it complete.
-
-  **Done:** M1's required tasks are verified, demo controls are stable, and M4 has usable screenshots plus a backup recording.
-
-  **Handoff:** M2 freezes the release; M4 runs the judging demonstration.
+  **Handoff:** M4 receives the final URL, known limits and backup assets.
 
 ## Final workstream acceptance
 
-All twelve Done conditions are verified with evidence; reviewed work is merged; the downstream member has received the handoff. Close this Issue only after that check. PDF/repository checklist copies do not sync automatically.
+All six Done conditions are verified with evidence; reviewed work is merged; the downstream role has received the handoff. Close this Issue only after that check. Leave incomplete tasks open at the deadline. PDF/repository checklist copies do not sync automatically.

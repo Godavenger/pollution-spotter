@@ -2,293 +2,151 @@
   "roles": [
     {
       "id": "M1",
-      "name": "Member 1 - Frontend and reporting experience",
-      "mission": "Build a clear phone-friendly journey from photo and location to human review, publication and an editable complaint.",
-      "owns": [
-        "app/page.tsx",
-        "components/report/*",
-        "components/complaint/*"
-      ],
-      "reviewer": "Member 4 reviews usability; Member 2 reviews API integration.",
+      "name": "Member 1 - Frontend and reporting",
+      "mission": "Make one clear phone-friendly journey from image selection to a reviewed report and copied complaint.",
+      "owns": "app/page.tsx; components/report/*; components/complaint/*",
+      "reviewer": "M4 checks the full journey; M2 checks request contracts. Role slots are unassigned.",
       "tasks": [
         {
           "id": "M1-01",
-          "title": "Agree on screens and API contracts",
+          "title": "Agree the screens and shared inputs",
           "window": "H0-1",
           "steps": [
-            "Read lib/contracts.ts with M2; agree on upload, analyzing, review, publishing, success and error states.",
-            "Sketch these states for app/page.tsx; agree with M4 on selected-location and after-publish callbacks."
+            "Agree the draft, review and public-report types with M2; use M3's labeled fixtures.",
+            "Sketch upload -> review -> published screens; reserve a client-only map slot for M4."
           ],
-          "done": "Team agrees on payloads, labels, mandatory human confirmation and map callbacks before coding.",
-          "handoff": "M2 provides contracts/session helper; M4 confirms map props."
+          "done": "M2 and M4 accept the component props and sample payload; role ownership is recorded.",
+          "handoff": "Send screen props and needed API fields to M2/M4."
         },
         {
           "id": "M1-02",
-          "title": "Build the reporting page shell",
+          "title": "Build photo and location input",
           "window": "H1-2",
           "steps": [
-            "In app/page.tsx and components/report/ReportWorkspace.tsx, create a phone-first page with labeled steps and visible progress.",
-            "Keep browser APIs in the client workspace; reserve a client-only dynamic map slot for M4 with SSR disabled."
+            "Add one JPEG/PNG/WebP file input, preview and a clear 3 MB size limit; reject an unsupported or oversized file.",
+            "Collect latitude/longitude with a map pin or editable coordinates. Offer geolocation only with manual fallback."
           ],
-          "done": "Page opens locally and on the initial HTTPS deployment without hydration or window errors.",
-          "handoff": "M4 receives the map slot; M2 deploys the shared branch."
+          "done": "A supported photo and corrected location can be submitted; denied GPS and invalid files show useful messages.",
+          "handoff": "M2 receives the agreed multipart payload; M4 receives the selected-location props."
         },
         {
           "id": "M1-03",
-          "title": "Add camera, file selection and preview",
+          "title": "Complete mandatory review at the H3 gate",
           "window": "H2-3",
           "steps": [
-            "Create components/report/PhotoInput.tsx with camera/file inputs, preview, replacement and clear supported-format guidance.",
-            "Accept JPEG/PNG/WebP, reject sources over 8 MB, and resize/compress to at most 1600 px and 3 MB before submission; show a useful error if this fails."
+            "Submit with the anonymous session token; show loading and failure without claiming a draft was saved on error.",
+            "Render editable labels, description and location with live/manual/sample labels; wire a separate explicit Publish confirmation to M2's route."
           ],
-          "done": "Phone photo and file uploads preview correctly; unsupported and oversized files cannot proceed.",
-          "handoff": "M2 receives the compressed image; server still validates and strips metadata."
+          "done": "The H3 slice persists a reviewed report and refreshes M4's map; failed saving and unconfirmed drafts never appear as published success.",
+          "handoff": "Run the H3 slice with M2/M4 and record the remaining blocker, if any."
         },
         {
           "id": "M1-04",
-          "title": "Let users confirm the location",
-          "window": "H3-4",
+          "title": "Publish once and create complaint text",
+          "window": "H3-5",
           "steps": [
-            "In components/report/LocationStep.tsx, request browser location only after the user taps the location button.",
-            "Connect M4's picker; allow tap/drag correction and manual pin selection when permission is denied or location is unavailable."
+            "Call M2's publish route for the same draft ID; disable repeated clicks and show success only after persistence succeeds.",
+            "Explain that confirmed description and selected coordinates become public while the photo stays private; add editable complaint text and Copy."
           ],
-          "done": "Confirmed valid coordinates are visible; denying GPS permission still allows completing a report.",
-          "handoff": "Depends on M4-04; pass confirmed latitude/longitude to M2's draft route."
+          "done": "A reviewed report survives reload and appears on M4's map; copying uses confirmed fields and never sends a complaint.",
+          "handoff": "M4 runs the complete H5 journey; M2 gets exact error cases."
         },
         {
           "id": "M1-05",
-          "title": "Submit a private draft reliably",
-          "window": "H4-6",
+          "title": "Check the deployed phone journey",
+          "window": "H5-7",
           "steps": [
-            "In ReportWorkspace.tsx, obtain M2's anonymous session and POST multipart image, coordinates, optional note and client_request_id with the bearer token.",
-            "Disable repeat clicks; retain the same UUID and values for timeout retries. A new-report action creates a new UUID."
+            "Run the final HTTPS URL on a phone with one supported photo, manual coordinates, review, publish and complaint copy.",
+            "Fix only blockers: unreadable controls, denied GPS, failed upload, unavailable AI, publish error and sample labeling."
           ],
-          "done": "H6 mocked slice receives a draft; errors preserve inputs and never display false submission success.",
-          "handoff": "M2 supplies idempotent draft route; M3's mock responses remain visibly sample data."
+          "done": "A teammate completes the phone flow; a failed operation never shows false success and public-data wording is visible.",
+          "handoff": "Give M4 the verified phone/browser and any limitations before H7 freeze."
         },
         {
           "id": "M1-06",
-          "title": "Build mandatory human review",
-          "window": "H6-8",
+          "title": "Freeze screens and support rehearsal",
+          "window": "H7-8",
           "steps": [
-            "Create components/report/ReviewPanel.tsx showing the photo, visible-cue evidence, analysis source and editable labels/location.",
-            "Allow multiple pollution labels; make unclear/no_visible_pollution exclusive. Require explicit confirmation before publishing; manual fallback starts as unclear."
+            "Merge reviewed UI work, record the deployed commit and avoid new features after H7.",
+            "Help capture a backup and rehearse the active live/manual/sample mode; attach actual evidence to the workstream Issue."
           ],
-          "done": "User can correct AI output; unchecked confirmation blocks publication and no confidence or safety claim is shown.",
-          "handoff": "M3 checks label/evidence wording; M2 validates the same rules server-side."
-        },
-        {
-          "id": "M1-07",
-          "title": "Publish the reviewed draft",
-          "window": "H8-10",
-          "steps": [
-            "Wire ReviewPanel.tsx to PATCH /api/reports/{id} with action=publish, edited labels/location and the bearer token.",
-            "Show success only after the response; pass the published report to the workspace and trigger M4's immediate map refresh."
-          ],
-          "done": "One reviewed draft becomes one published report; failed publication retains edits; mock reports enter only the sample view.",
-          "handoff": "M2 updates the existing row; M4 verifies the new marker and count."
-        },
-        {
-          "id": "M1-08",
-          "title": "Add editable complaint copy and download",
-          "window": "H10-12",
-          "steps": [
-            "Create components/complaint/ComplaintDraft.tsx using the server's safe complaint_text after publication.",
-            "Allow local editing, Copy and Download .txt; explain that the user verifies the recipient and sends the complaint separately."
-          ],
-          "done": "Both export actions work; private notes/contact details are absent from the public template and local edits stay local.",
-          "handoff": "M2 supplies deterministic wording; M4 includes this screen in the H12 complete-flow gate."
-        },
-        {
-          "id": "M1-09",
-          "title": "Make recovery paths understandable",
-          "window": "H12-15",
-          "steps": [
-            "Check report components for denied GPS, canceled selection, invalid images, draft failure, vision timeout and failed publication.",
-            "Add concise recovery instructions, retained inputs and safe Retry/New report actions; distinguish AI fallback from failed draft creation."
-          ],
-          "done": "Each failure has a usable next action; retries cannot silently create duplicate submissions.",
-          "handoff": "M4 records failures; M2/M3 resolve backend or adapter problems."
-        },
-        {
-          "id": "M1-10",
-          "title": "Check phone layout and accessibility",
-          "window": "H15-18",
-          "steps": [
-            "Check report/complaint components at 360 px width and with keyboard navigation; fix clipped controls and misplaced focus.",
-            "Use text labels, readable contrast and status announcements; keep sample badges and the visual-suggestion explanation visible."
-          ],
-          "done": "All required actions work without hover, color-only meaning or horizontal scrolling on a phone.",
-          "handoff": "M4 reviews the complete phone journey; M2 merges the verified frontend changes."
-        },
-        {
-          "id": "M1-11",
-          "title": "Run the deployed photo-to-complaint journey",
-          "window": "H18-22",
-          "steps": [
-            "On the deployed HTTPS URL, capture/select a real photo, confirm a pin, review labels, publish and copy/download the complaint.",
-            "Repeat a denied-location or AI-fallback path; fix frontend defects and send screenshots/results to M4 for docs/demo.md."
-          ],
-          "done": "M4 witnesses a successful phone flow and a recoverable failure; published data appears on a second browser.",
-          "handoff": "M2 checks deployed API/session behavior; M4 collects final acceptance evidence."
-        },
-        {
-          "id": "M1-12",
-          "title": "Freeze the frontend and hand off the demo",
-          "window": "H22-24",
-          "steps": [
-            "Merge reviewed frontend fixes; verify the final deployment and rehearse the photo, review and complaint steps with M4.",
-            "Update the M1 GitHub Issue checkboxes with evidence links; record any remaining limitation instead of marking it complete."
-          ],
-          "done": "M1's required tasks are verified, demo controls are stable, and M4 has usable screenshots plus a backup recording.",
-          "handoff": "M2 freezes the release; M4 runs the judging demonstration."
+          "done": "The UI used in rehearsal matches the frozen deployment; incomplete work stays unchecked and every shown mode is labeled.",
+          "handoff": "M4 receives the final URL, known limits and backup assets."
         }
       ]
     },
     {
       "id": "M4",
-      "name": "Member 4 - Map, integration QA and demo coordination",
-      "mission": "Make published reports visible on a clear map, verify the end-to-end flow and keep GitHub progress and the demo accurate.",
-      "owns": [
-        "components/map/*",
-        "lib/hotspots.ts",
-        "tests/e2e/*",
-        "docs/demo.md",
-        "planning trackers"
-      ],
-      "reviewer": "Member 1 reviews map usability; Member 2 reviews data handling and integration.",
+      "name": "Member 4 - Map, integration and demo",
+      "mission": "Join the workstreams into a credible map demonstration and keep the eight-hour gates visible.",
+      "owns": "components/map/*; integration-checks/*; docs/demo.md; GitHub workstream tracking",
+      "reviewer": "M1 checks map usability; M2 checks public fields. Role slots are unassigned.",
       "tasks": [
         {
           "id": "M4-01",
-          "title": "Set up the team's GitHub tracker",
+          "title": "Set the eight-hour gates and map boundary",
           "window": "H0-1",
           "steps": [
-            "After the team creates its repository, copy the supplied role checklists into four GitHub Issues; replace @member1-4 placeholders with real teammates.",
-            "Assign owners and add Todo, In progress, Blocked, Review and Done project statuses; link blockers and pull requests."
+            "Record who fills M1-M4 after the team agrees; prepare four workstream Issues without inventing assignments.",
+            "Agree public map props with M1/M2, prepare small visibly labeled fixtures and display H1/H3/H5/H7/H8 gates."
           ],
-          "done": "Every member has an assigned Issue and can tick its tasks; the team knows repository Markdown requires editing/committing.",
-          "handoff": "All members use Issues as the task record; PDF boxes do not synchronize."
+          "done": "Each role slot is assigned by the team or clearly unassigned; shared map/report types and gate times are visible.",
+          "handoff": "All roles get Issue links and the next integration time."
         },
         {
           "id": "M4-02",
-          "title": "Agree on map inputs and hotspot rules",
+          "title": "Build a pins-only public map",
           "window": "H1-2",
           "steps": [
-            "Review public report fields with M2 and picker/refresh callbacks with M1; record agreements in docs/demo.md.",
-            "Fix the demo center/reference latitude and agree on approximate 100 m projected bins, trailing 24-hour timestamps and separate real/sample counts."
+            "Render React Leaflet client-side with OpenStreetMap attribution; show published pins with confirmed description, labels, time and source.",
+            "Make real reports the default; put is_demo fixtures in a separate Sample view. Provide empty/error state and a Refresh action."
           ],
-          "done": "Team agrees that three published pollution report records form a hotspot; records are not verified independent observations.",
-          "handoff": "M2 supplies public report fixtures; M1 supplies the client-only map mount."
+          "done": "Fixtures render without SSR errors, sample badges are visible, and private fields/photos are not required.",
+          "handoff": "M1 receives the map component; M2 receives public GET expectations."
         },
         {
           "id": "M4-03",
-          "title": "Render the client-only Leaflet map",
+          "title": "Run the H3 integration gate",
           "window": "H2-3",
           "steps": [
-            "Build components/map/MapView.tsx with React Leaflet, Leaflet CSS and OpenStreetMap tiles; keep attribution visible.",
-            "Show the chosen demo area, clear marker colors/labels and an honest empty state; default to real reports."
+            "Connect M1's map slot to M2's public GET and refresh after publication; do not add background polling or hotspots.",
+            "Run upload -> manual/sample review -> publish -> reload -> map with all roles and record the first failing boundary."
           ],
-          "done": "Map loads in M1's workspace without SSR errors, and attribution stays readable on a phone.",
-          "handoff": "M1 imports MapView through the agreed client-only wrapper."
+          "done": "A persisted manual flow reaches the map, or the exact missing boundary is documented as prototype-only progress.",
+          "handoff": "Send each blocker to its role owner; pause polish until the slice works."
         },
         {
           "id": "M4-04",
-          "title": "Build the location picker",
-          "window": "H3-4",
+          "title": "Accept the H5 core or lock the fallback",
+          "window": "H3-5",
           "steps": [
-            "Create components/map/LocationPicker.tsx with tap-to-place and draggable pin behavior; emit validated latitude/longitude through the agreed callback.",
-            "Accept M1's browser-location result for recentering and keep the selected pin visibly distinct from published markers."
+            "Run the complete flow including complaint Copy; record whether analysis was live, manual_fallback or sample/mock.",
+            "Check with M2 that another session cannot publish the draft and a private draft is absent from public GET."
           ],
-          "done": "M1 can select and correct a location without GPS; selecting a pin alone never creates a public report.",
-          "handoff": "Unblocks M1-04; M1 stores the confirmed coordinates."
+          "done": "The end-to-end persisted flow passes, with live AI or a truthful manual fallback; unresolved core gaps are named.",
+          "handoff": "Tell all roles the frozen demo mode and only the blockers remaining before H7."
         },
         {
           "id": "M4-05",
-          "title": "Fetch and refresh published reports",
-          "window": "H4-5",
+          "title": "Freeze after phone and privacy checks",
+          "window": "H5-7",
           "steps": [
-            "In components/map/useReports.ts, use production-shaped fixtures until M2 provides GET /api/reports; fetch on load and after M1's publish callback.",
-            "Poll every 10 seconds while visible, refresh on return, and clean up timers; show loading, error and last-successful-update states."
+            "Run the small QA matrix on the deployed URL, including phone upload, denied GPS, AI failure, repeat publish and sample separation.",
+            "Draft a three-minute rehearsal script around one report; keep the six-slide selection deck framed as a proposal until implementation is verified."
           ],
-          "done": "Production-shaped fixtures verify refresh and stale/error states; M4-08 verifies live second-browser updates after M2 delivers GET.",
-          "handoff": "M2 guarantees published-only safe fields and fresh signed image URLs; describe this as polling."
+          "done": "Evidence and limitations are attached; the team freezes at 17:00 with an honest script and no new features.",
+          "handoff": "M1/M2/M3 receive the final blocker list and judging order."
         },
         {
           "id": "M4-06",
-          "title": "Calculate report-density hotspots",
-          "window": "H5-6",
+          "title": "Rehearse and package the demo",
+          "window": "H7-8",
           "steps": [
-            "Implement the frozen projected-bin formula in lib/hotspots.ts; count each eligible published record once and split real/sample datasets.",
-            "Check threshold, multilabel, time-boundary and neutral-label cases in tests/e2e/hotspots.spec.ts; show the H6 mocked map slice."
+            "Rehearse once on the frozen deployment and prepare a labeled recording/screenshots if the network fails.",
+            "Record actual implementation status, URL/commit and uncompleted tasks; follow the announced submission rules at 18:00."
           ],
-          "done": "Three recent pollution records in one bin trigger a hotspot; unclear/no_visible_pollution, old or cross-layer records cannot inflate it.",
-          "handoff": "M2 reviews timestamp/filter logic; M1 reviews the report-density wording."
-        },
-        {
-          "id": "M4-07",
-          "title": "Make sample data unmistakable",
-          "window": "H6-8",
-          "steps": [
-            "Add separate real and Sample demo views in MapView.tsx; label sample markers, popup details and hotspot counts clearly.",
-            "Use only M2's server seed flow for demonstration fixtures; verify mock analysis reports appear exclusively in the sample view."
-          ],
-          "done": "Switching views never combines counts; sample activity cannot be mistaken for real public reports.",
-          "handoff": "M2 controls demo insertion; M3 provides labeled mock fixtures; M1 displays matching source badges."
-        },
-        {
-          "id": "M4-08",
-          "title": "Pass the complete-flow integration gate",
-          "window": "H8-12",
-          "steps": [
-            "Exercise photo to draft to human review to publish to map to complaint; record the result in docs/demo.md.",
-            "Verify drafts stay hidden, publication keeps one report ID, immediate refresh works, and a second browser receives the report through polling."
-          ],
-          "done": "H12 deployed flow works with real vision. Record labeled manual/mock contingency if needed, but leave the live gate unmet.",
-          "handoff": "Route blockers to M1/M2/M3 immediately; defer visual polish until this gate passes."
-        },
-        {
-          "id": "M4-09",
-          "title": "Verify ownership and public-data boundaries",
-          "window": "H12-15",
-          "steps": [
-            "With M2, use two anonymous sessions to verify one owner cannot edit/publish the other's draft and unauthenticated writes fail.",
-            "Check public JSON excludes owner IDs, raw image_path fields and private notes; confirm private storage cannot be listed/read directly."
-          ],
-          "done": "Record passing checks in docs/demo.md and useful regressions in tests/e2e/report-flow.spec.ts; no credentials appear in evidence.",
-          "handoff": "M2 fixes authorization/storage issues before the release gate."
-        },
-        {
-          "id": "M4-10",
-          "title": "Test failures and phone map behavior",
-          "window": "H15-18",
-          "steps": [
-            "Check slow/failed vision, duplicate retries, denied location, empty results, network loss and signed-photo URL refresh; log defects in GitHub Issues.",
-            "Test map controls/popups at phone width, attribution, sample badges and polling cleanup when hidden or unmounted."
-          ],
-          "done": "Required failure paths recover without fabricated success or duplicate counts; unresolved demo blockers have owners.",
-          "handoff": "M1 fixes UX, M2 fixes requests/data, M3 fixes adapter failures; M4 retests the fixes."
-        },
-        {
-          "id": "M4-11",
-          "title": "Rehearse the map-fill demonstration",
-          "window": "H18-22",
-          "steps": [
-            "Write docs/demo.md with a three-minute script: photo, reviewed visual suggestion, new marker, report-density hotspot and copied complaint.",
-            "Rehearse with all members; use a clearly labeled sample view for staged map filling and explain that refresh uses 10-second polling."
-          ],
-          "done": "Everyone knows their speaking/action cue; live behavior and sample scenes are distinguishable, with a recorded backup available.",
-          "handoff": "M1 operates reporting screens; M2 monitors deployment; M3 explains vision limits; M4 narrates the map."
-        },
-        {
-          "id": "M4-12",
-          "title": "Close verified tasks and freeze the demo",
-          "window": "H22-24",
-          "steps": [
-            "Run final phone and second-browser checks on M2's release URL; save commit hash, screenshots, video and known limitations in docs/demo.md.",
-            "Tick verified Issue tasks, link evidence and move reviewed work to Done; leave unfinished items open and rehearse the backup switch."
-          ],
-          "done": "The judging URL, release version, checked task evidence and honest backup demo are accessible to all four teammates.",
-          "handoff": "All members stop feature work; optional H24-36 improvements start only after acceptance passes."
+          "done": "The team is ready at 18:00 and can clearly separate working software, fallback behavior, samples and future plans.",
+          "handoff": "All four members receive the demo script, backup and known limitations."
         }
       ]
     }

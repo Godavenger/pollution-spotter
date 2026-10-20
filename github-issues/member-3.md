@@ -1,139 +1,73 @@
-# M3: Vision & evaluation
+# M3: Vision & smoke checks
 
-**Assignee:** @member3 — placeholder; choose the actual teammate in GitHub's Assignees sidebar.
+**Assignee:** Unassigned role slot. Choose the teammate only after the team agrees; collaborator invitations are not role assignments.
 
-**Mission:** Produce conservative visual suggestions with measurable limitations and an honest, reliable fallback.
+**Mission:** Offer conservative visual suggestions with a bounded server call, honest provenance and a reliable manual fallback.
 
-**Owned files:** lib/vision/*; evaluation/*; tests/vision/*; vision prompt, fixtures and evaluation evidence
+**Owned files:** lib/vision/*; evaluation/*; tests/vision/*
 
-**Reviewer:** Member 2 reviews server integration and secret handling; Member 1 reviews understandable labels.
+**Reviewer:** M2 checks server integration and secrets; M1 checks review wording. Role slots are unassigned.
 
-Follow tasks in order. Hours are elapsed from kickoff; tasks sharing a window are parallel work, not additive durations. Complete the 24-hour demo before optional hardening.
+Follow six tasks in order. H0 is 10:00 IST on 31 October 2026; H8 is 18:00. Roles run in parallel. Gates: H1 setup, H3 integrated slice, H5 core or manual fallback, H7 freeze, H8 demo ready. Post-event work is deferred.
 
 Check each box only when its Done condition passes. Add a comment with task ID, PR/commit, screenshot/test evidence and reviewer confirmation. A checkbox does not run a test. Leave blocked/incomplete work unchecked and name the blocker.
 
 The application has not been built by this planning pack; the paths below describe future implementation work.
 
-- [ ] **M3-01 — Prove the chosen model works immediately** · H0–1
+- [ ] **M3-01 — Smoke-test model access and supply fixtures** · H0-1
 
-  1. In Google AI Studio, select a currently available Flash-family vision model; verify access instead of copying an old model ID.
-  2. Coordinate @google/genai installation with M2; run a server-side image request using an environment key.
-  3. Save the passing exact GEMINI_MODEL; record latency/quota errors without keys/images.
+  1. Check a currently available Gemini Flash-family vision model using @google/genai on the server; record the exact passing GEMINI_MODEL.
+  2. Give M1/M2 one conservative result fixture and one manual_fallback fixture even if live access is blocked.
 
-  **Done:** One real image returns successfully, or the team explicitly activates and documents manual/mock contingency.
+  **Done:** Live access has a recorded outcome and teammates can build without it; no key or image content is logged.
 
-  **Handoff:** M2 gets settings; M4 knows live availability.
+  **Handoff:** M2 gets model/configuration names; M4 knows whether live AI is available.
 
-- [ ] **M3-02 — Agree the vision boundary and display language** · H1–2
+- [ ] **M3-02 — Write the conservative adapter and schema** · H1-2
 
-  1. Agree analyzeImage({bytes:Buffer,mimeType:string}): Promise<VisionResult> with M2 and import shared types from lib/contracts.ts.
-  2. Use only algal_bloom, oil_sheen, garbage, no_visible_pollution and unclear; neutral labels exclude all other labels.
-  3. Return labels, evidence ≤240 characters and review_needed. Tell M1 every result still requires human confirmation.
+  1. Implement analyzeImage({bytes,mimeType}) returning allowed unique labels, evidence <=240 characters and boolean review_needed.
+  2. Prompt for visible clues only; reject unsupported labels, conflicting neutrals and invalid output, and apply M2's 12-second deadline.
 
-  **Done:** M1/M2 accept the sample payload and renderable fixture; types and label meanings agree before the review screen is built.
+  **Done:** One valid result parses; malformed output and provider failure raise a typed failure for manual review.
 
-  **Handoff:** M1 uses plain-language label captions; M2 can build the adapter call before live integration.
+  **Handoff:** M2 imports the server-only adapter and validator; M1 gets plain-language labels.
 
-- [ ] **M3-03 — Assemble an honest visual evaluation set** · H2–3
+- [ ] **M3-03 — Verify truthfulness at the H3 slice** · H2-3
 
-  1. Collect 20 consented/licensed images in evaluation/ with provenance; avoid faces, number plates and private metadata.
-  2. Assign four primary examples per label, including glare mistaken for oil, reflections/vegetation, blur and mixed visible pollution.
-  3. Record expected visible-label sets in evaluation/cases.csv; two teammates flag ambiguous examples without forcing certainty.
+  1. Run valid, unclear, malformed and unavailable-provider fixtures through M2's route.
+  2. Check failure uses unclear/manual_fallback; deliberate mock mode must mark is_demo=true from draft creation and remain a sample after review.
 
-  **Done:** All 20 cases have provenance, expected labels and ambiguity notes; expectations describe visible appearance only.
+  **Done:** M1/M4 can distinguish live suggestions, manual review and simulated samples; no fallback is presented as successful AI.
 
-  **Handoff:** M1/M4 receive a small clearly marked demo subset; preserve separate evaluation cases.
+  **Handoff:** Record H3 fixture outcomes and send any metadata/schema fix to M2.
 
-- [ ] **M3-04 — Write a conservative prompt and output schema** · H3–4
+- [ ] **M3-04 — Run six focused visual smoke cases** · H3-5
 
-  1. Create lib/vision/prompt.ts: inspect visible water-surface cues; choose unclear when the photo cannot support a label.
-  2. Prohibit toxin, chemistry, drinking-safety and confidence-percentage claims; require brief evidence tied to visible features.
-  3. Define structured JSON and strict validation: nonempty allowed labels, uniqueness, neutral exclusivity, evidence length and boolean review_needed.
+  1. Use six consented/licensed small images: visible litter, green surface, sheen-like surface, clean/glare, blur and mixed/ambiguous content.
+  2. Record provenance, expected visible cues, actual labels, source and failure; choose live or manual contingency with M2 at H5.
 
-  **Done:** Valid single/multiple pollution labels pass; empty labels, mixed neutrals, invented enums and oversized evidence fail.
+  **Done:** Six case outcomes or explicit access failures are recorded; selected examples are not described as model accuracy.
 
-  **Handoff:** M2 imports the validator; M1 confirms the wording is understandable and editable.
+  **Handoff:** M4 gets honest examples and limitations; M1 gets any confusing wording.
 
-- [ ] **M3-05 — Build the server-only live vision adapter** · H4–6
+- [ ] **M3-05 — Fix one material error and verify the fallback** · H5-7
 
-  1. Implement server-only lib/vision/analyze.ts using @google/genai, GEMINI_MODEL and normalized image bytes.
-  2. Request structured JSON and validate the returned data; throw typed errors for empty, invalid, blocked or failed responses.
-  3. Configure provider timeout/retries to fit M2's 12-second deadline; avoid uncontrolled automatic retries and log only safe diagnostics.
+  1. Make at most one focused prompt/schema correction for a demonstrated error; rerun affected smoke cases and preserve outcomes.
+  2. Check the final deployment's live request, provider failure and mock/sample labels; confirm every result still requires human review.
 
-  **Done:** A sample produces valid VisionResult; malformed/provider-failed responses produce typed failures; logs contain no keys/images.
+  **Done:** The final model/prompt version and tested behavior are recorded; no unsupported water-safety or toxin claim appears.
 
-  **Handoff:** M2 imports the adapter for the draft route; coordinate dependency changes through M2.
+  **Handoff:** M2 freezes the prompt/model; M4 gets the verified AI explanation.
 
-- [ ] **M3-06 — Supply explicit mocks for the H6 thin slice** · H4–6
+- [ ] **M3-06 — Prepare evidence and freeze vision** · H7-8
 
-  1. Provide deterministic fixtures for successful labels, unclear, malformed output, timeout and provider error in tests/vision/fixtures.
-  2. Implement deliberate VISION_MODE=mock behavior; require server metadata analysis_source=mock and is_demo=true for publication.
-  3. Run the H6 upload/review contract check with M1/M2/M4; verify manual_fallback differs visibly from successful live vision.
+  1. Freeze the adapter and prompt; add smoke results, model ID and known limits to evaluation/README.md.
+  2. Give M4 one live example if available and a clearly labeled fallback example; rehearse without changing models late.
 
-  **Done:** The thin slice works without model access; all participants can identify live, manual fallback and mock results correctly.
+  **Done:** Rehearsal names the active mode and uses real recorded evidence; missing live access is disclosed plainly.
 
-  **Handoff:** M4 receives repeatable failure fixtures; M2 preserves source/demo metadata outside VisionResult.
-
-- [ ] **M3-07 — Harden validation and failure handling** · H6–9
-
-  1. Add meaningful tests for wrong types/enums, duplicate labels, neutral conflicts, overly long evidence, missing fields and provider failures.
-  2. Verify rejected output becomes needs_review/unclear/manual_fallback through M2's route instead of invented AI success.
-  3. Check a delayed provider response cannot overwrite a published row; confirm mock metadata survives review/publish.
-
-  **Done:** Boundary tests pass and each invalid provider case produces a reviewable truthful fallback; delayed output cannot change a confirmed report.
-
-  **Handoff:** M2 owns route/update fixes; M1 owns clear fallback explanations.
-
-- [ ] **M3-08 — Complete the live H12 integration gate** · H9–12
-
-  1. Run deployed uploads for garbage, surface-green water, sheen-like appearance and an unclear/clean image.
-  2. Confirm normalization preserves detail and model evidence stays brief and tied to visible features.
-  3. Review/edit labels before publish; verify source metadata, complaint wording and map behavior for neutral results.
-
-  **Done:** A live image completes the journey; neutral/unclear results never become hotspots; failures remain usable through review.
-
-  **Handoff:** M4 records H12 acceptance; M1/M2 fix any integration issue before presentation polish.
-
-- [ ] **M3-09 — Measure model mistakes on the sample set** · H12–15
-
-  1. Run 20 annotated images with the frozen model/prompt; save expected/predicted labels, latency and failure/source in evaluation/results.csv.
-  2. Count exact label-set matches, per-label misses and false positives; inspect clean/glare examples for overcalling.
-  3. Record invalid outputs and timeouts separately; do not count manual/mock results as successful AI predictions.
-
-  **Done:** All 20 cases have results/false-positive notes; counts include denominators and describe this small sample only.
-
-  **Handoff:** M4 gets honest judging evidence; M1 gets examples that need clearer review guidance.
-
-- [ ] **M3-10 — Fix the clearest errors and verify the change** · H15–18
-
-  1. Make one focused prompt revision for recurring glare/vegetation/ambiguity errors; preserve original results.
-  2. Rerun affected cases and five newly sourced unseen checks; record versions and changed outcomes separately.
-  3. Document persistent errors and strengthen review/unclear guidance; never present selected examples as broad accuracy.
-
-  **Done:** Final prompt is versioned; regressions/limits are recorded; false positives have mitigation or documented limitations.
-
-  **Handoff:** M2 deploys the final prompt; M4 uses only verified claims in the demo script.
-
-- [ ] **M3-11 — Rehearse live and contingency demonstrations** · H18–22
-
-  1. Check model access/quota; run a real phone photo on the final deployment with M4.
-  2. Rehearse unavailable-provider manual review and deliberate mock mode; mock output enters only the sample layer.
-  3. Prepare three sourced demo photos; explain why visual labels cannot establish water safety.
-
-  **Done:** Live/contingency paths are rehearsed; the presenter names the active mode and explains limits without unsupported claims.
-
-  **Handoff:** M4 gets photos, provenance, expected behavior and a short vision explanation.
-
-- [ ] **M3-12 — Freeze vision and attach evidence to GitHub** · H22–24
-
-  1. Merge reviewed changes; record exact model ID, prompt version, test command and limitations in evaluation/README.md.
-  2. Link schema-test output/evaluation counts in the assigned Issue; check completed items; leave optional improvements open.
-  3. Help M4 capture a backup identifying sample/manual/mock content; avoid late model/prompt changes.
-
-  **Done:** Frozen model/prompt matches deployment; teammates can open evidence links; fallback never appears as live AI success.
-
-  **Handoff:** M4 incorporates evaluation and contingency evidence into docs/demo.md and the judging presentation.
+  **Handoff:** M4 receives demo images with provenance and a brief limitations statement.
 
 ## Final workstream acceptance
 
-All twelve Done conditions are verified with evidence; reviewed work is merged; the downstream member has received the handoff. Close this Issue only after that check. PDF/repository checklist copies do not sync automatically.
+All six Done conditions are verified with evidence; reviewed work is merged; the downstream role has received the handoff. Close this Issue only after that check. Leave incomplete tasks open at the deadline. PDF/repository checklist copies do not sync automatically.

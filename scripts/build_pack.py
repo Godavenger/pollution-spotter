@@ -36,7 +36,10 @@ WIDTH = PAGE_W - 2 * MARGIN
 TOP = PAGE_H - 65
 BOTTOM = 51
 AVAILABLE = TOP - BOTTOM
-TOTAL_PAGES = 22
+TASKS_PER_ROLE = 6
+TASKS_PER_PAGE = 3
+TOTAL_TASKS = 4 * TASKS_PER_ROLE
+TOTAL_PAGES = 18
 NAVY = colors.HexColor("#102D3E")
 TEAL = colors.HexColor("#007E78")
 TEAL_LIGHT = colors.HexColor("#EAF6F3")
@@ -52,7 +55,7 @@ MONO = "PS-Mono"
 ROLE_SHORT = {
     "M1": "Frontend & reporting",
     "M2": "Backend & deployment",
-    "M3": "Vision & evaluation",
+    "M3": "Vision & smoke checks",
     "M4": "Map, integration & demo",
 }
 
@@ -64,15 +67,17 @@ def load_sources():
     roles.sort(key=lambda role: role["id"])
     assert [r["id"] for r in roles] == ["M1", "M2", "M3", "M4"]
     for role in roles:
-        assert len(role["tasks"]) == 12, role["id"]
+        assert len(role["tasks"]) == TASKS_PER_ROLE, role["id"]
         assert set(role) == {"id", "name", "mission", "owns", "reviewer", "tasks"}
         for index, task in enumerate(role["tasks"], 1):
             assert task["id"] == f"{role['id']}-{index:02d}"
             assert set(task) == {"id", "title", "window", "steps", "done", "handoff"}
             assert 2 <= len(task["steps"]) <= 4
+            start, end = map(int, re.fullmatch(r"H(\d+)-(\d+)", task["window"]).groups())
+            assert 0 <= start < end <= 8, task["id"]
     guide = json.loads((PLANNING / "guide.json").read_text(encoding="utf-8-sig"))
     assert len(guide["before_roles"]) == 4
-    assert len(guide["after_roles"]) == 9
+    assert len(guide["after_roles"]) == 5
     for page in guide["before_roles"] + guide["after_roles"]:
         assert set(page) == {"kicker", "title", "intro", "blocks"}
         for block in page["blocks"]:
@@ -292,15 +297,15 @@ def guide_flow(page, size=10, compact=False):
 
 def role_flow(role, half, size=9.6, compact=False):
     s = styles(size, compact)
-    start = half * 6
-    tasks = role["tasks"][start:start + 6]
+    start = half * TASKS_PER_PAGE
+    tasks = role["tasks"][start:start + TASKS_PER_PAGE]
     page = {
-        "kicker": f"{role['id']} / TASKS {start + 1:02d}–{start + 6:02d} / {'BUILD' if half == 0 else 'INTEGRATE & VERIFY'}",
+        "kicker": f"{role['id']} / TASKS {start + 1:02d}-{start + len(tasks):02d} / {'BUILD THE SLICE' if half == 0 else 'VERIFY & FREEZE'}",
         "title": ROLE_SHORT[role["id"]],
         "intro": role["mission"],
     }
     flow = page_heading(page, s)
-    flow.append(para(f"**Owner:** @member{role['id'][-1]} (replace)  |  **Reviewer:** {role['reviewer']}", s["small"]))
+    flow.append(para(f"**Owner:** Unassigned role slot  |  **Reviewer:** {role['reviewer']}", s["small"]))
     if half == 0:
         flow.extend([Spacer(1, 3), para(f"**Owns:** {owns_text(role)}", s["small"])])
     flow.extend([Spacer(1, 8), Rule(after=6)])
@@ -317,7 +322,7 @@ def measure(flow, c):
 
 
 def choose_layout(builder, c, role=False):
-    choices = ([(9.6, False), (9.4, False), (9.2, True), (9.0, True)] if role else
+    choices = ([(11.5, False), (11.0, False), (10.5, False), (10.0, False)] if role else
                [(10.2, False), (10.0, False), (9.7, False), (9.4, True), (9.2, True), (9.0, True)])
     attempts = []
     for size, compact in choices:
@@ -351,7 +356,7 @@ def chrome(c, page, title):
     c.drawString(MARGIN + 20, PAGE_H - 32, "POLLUTION SPOTTER")
     c.setFont(FONT, 9)
     c.setFillColor(MUTED)
-    c.drawRightString(PAGE_W - MARGIN, PAGE_H - 32, "24H CORE  /  36H OPTIONAL")
+    c.drawRightString(PAGE_W - MARGIN, PAGE_H - 32, "AKI HACKS  /  EIGHT-HOUR MVP")
     c.bookmarkPage(f"page-{page}")
     c.addOutlineEntry(title, f"page-{page}", level=0, closed=False)
     footer(c, page)
@@ -382,18 +387,18 @@ def cover(c):
     c.rect(0, 435, PAGE_W, PAGE_H - 435, fill=1, stroke=0)
     c.setFillColor(TEAL)
     c.roundRect(MARGIN, PAGE_H - 72, 38, 7, 3.5, fill=1, stroke=0)
-    draw_paragraph(c, "HACKATHON EXECUTION PLAYBOOK", MARGIN, PAGE_H - 88, WIDTH, 10, colors.HexColor("#91DDD0"), True)
+    draw_paragraph(c, "AKI HACKS  /  31 OCTOBER 2026", MARGIN, PAGE_H - 88, WIDTH, 10, colors.HexColor("#91DDD0"), True)
     draw_paragraph(c, "Pollution\nSpotter", MARGIN, PAGE_H - 126, WIDTH, 49, WHITE, True, 53)
-    draw_paragraph(c, "A four-member pipeline from photo to public report.", MARGIN, 585, WIDTH - 30, 18, WHITE, False, 24)
-    draw_paragraph(c, "Build a live map of visual pollution reports, then prepare a complaint the user can review and send.", MARGIN, 523, WIDTH - 35, 11.3, colors.HexColor("#D4E7E8"))
+    draw_paragraph(c, "One reviewed report. Four people. Eight hours.", MARGIN, 585, WIDTH - 30, 18, WHITE, False, 24)
+    draw_paragraph(c, "Upload a photo, review visible clues, publish a map report and copy a complaint. Photos stay private.", MARGIN, 523, WIDTH - 35, 11.3, colors.HexColor("#D4E7E8"))
     c.setStrokeColor(colors.HexColor("#446172"))
     c.line(MARGIN, 466, PAGE_W - MARGIN, 466)
-    draw_paragraph(c, "24-hour core demo  ·  Optional improvement to 36 hours  ·  48 tracked tasks", MARGIN, 452, WIDTH, 9.6, colors.HexColor("#D4E7E8"))
+    draw_paragraph(c, "10:00-18:00 IST  /  IEM, Sector V, Kolkata  /  24 tracked tasks", MARGIN, 452, WIDTH, 9.6, colors.HexColor("#D4E7E8"))
 
     draw_paragraph(c, "THE DEMO JOURNEY", MARGIN, 411, WIDTH, 9, TEAL, True)
-    labels = [("01", "PHOTO", "Capture + pin"), ("02", "VISION", "Visible clues"),
-              ("03", "REVIEW", "Human confirms"), ("04", "MAP", "Report density"),
-              ("05", "COMPLAINT", "Copy / download")]
+    labels = [("01", "PHOTO", "Upload + pin"), ("02", "SUGGEST", "AI / manual"),
+              ("03", "REVIEW", "Human confirms"), ("04", "MAP", "Published pins"),
+              ("05", "COMPLAINT", "Edit + copy")]
     node_w, gap, base_y = 92, (WIDTH - 5 * 92) / 4, 318
     for index, (num, label, caption) in enumerate(labels):
         x = MARGIN + index * (node_w + gap)
@@ -420,8 +425,8 @@ def cover(c):
 
     draw_paragraph(c, "START WITH THE TEAM, THEN FOLLOW YOUR TASK IDs", MARGIN, 291, WIDTH, 9, TEAL, True)
     cards = [("01  ALIGN", "Pages 2–5", "Scope, stack and shared contracts", 2),
-             ("02  BUILD", "Pages 6–13", "Twelve tasks for each member", 6),
-             ("03  SHIP", "Pages 14–22", "Integration, GitHub and demo", 14)]
+             ("02  BUILD", "Pages 6-13", "Six tasks for each role", 6),
+             ("03  SHIP", "Pages 14-18", "Checks, fallbacks and demo", 14)]
     card_gap, card_w = 10, (WIDTH - 20) / 3
     for index, (name, pages, body, target) in enumerate(cards):
         x = MARGIN + index * (card_w + card_gap)
@@ -433,7 +438,7 @@ def cover(c):
         draw_paragraph(c, body, x + 11, 222, card_w - 22, 9.5, MUTED)
         c.linkRect(f"Open {pages}", f"page-{target}", (x, 184, x + card_w, 274), relative=0, thickness=0)
     draw_paragraph(c, "M1  Frontend     M2  Backend     M3  Vision     M4  Map + demo", MARGIN, 157, WIDTH, 10, NAVY, True)
-    draw_paragraph(c, "A planning pack, ready to put on GitHub. All tasks start unchecked. Replace member placeholders with your team's names; no repository or app has been created.", MARGIN, 131, WIDTH, 10, MUTED)
+    draw_paragraph(c, "Planning pack: the private GitHub repository exists; the app is not built. Role slots are unassigned and all implementation tasks start unchecked.", MARGIN, 131, WIDTH, 10, MUTED)
     c.bookmarkPage("page-1")
     c.addOutlineEntry("Start: Pollution Spotter", "page-1", level=0, closed=False)
     footer(c, 1)
@@ -445,7 +450,7 @@ def build_pdf(roles, guide):
     c = canvas.Canvas(str(PDF_PATH), pagesize=A4, pageCompression=1)
     c.setTitle("Pollution Spotter — Four-Member Hackathon Pipeline")
     c.setAuthor("Pollution Spotter planning team")
-    c.setSubject("24–36 hour execution plan, role tasks, contracts, GitHub tracking and demo acceptance")
+    c.setSubject("AKI HACKS eight-hour MVP, 24 role tasks, contracts, GitHub tracking and demo acceptance")
     c.setViewerPreference("DisplayDocTitle", "true")
     cover(c)
     report = [{"page": 1, "title": "Cover", "body_font_pt": 9.5, "task_ids": []}]
@@ -460,9 +465,9 @@ def build_pdf(roles, guide):
             ids = []
         else:
             role, half = source
-            title = f"{role['id']} {ROLE_SHORT[role['id']]} — tasks {half * 6 + 1:02d}–{half * 6 + 6:02d}"
+            title = f"{role['id']} {ROLE_SHORT[role['id']]} - tasks {half * TASKS_PER_PAGE + 1:02d}-{(half + 1) * TASKS_PER_PAGE:02d}"
             builder = lambda size, compact, r=role, h=half: role_flow(r, h, size, compact)
-            ids = [task["id"] for task in role["tasks"][half * 6:half * 6 + 6]]
+            ids = [task["id"] for task in role["tasks"][half * TASKS_PER_PAGE:(half + 1) * TASKS_PER_PAGE]]
         try:
             flow, heights, size, used, compact = choose_layout(builder, c, role=kind == "role")
         except Exception as exc:
@@ -515,7 +520,7 @@ def task_markdown(task, checkbox=True):
 
 def role_markdown(role, checkboxes=False):
     lines = [f"## {role['name']}", "", role["mission"], "",
-             f"**Owner:** @member{role['id'][-1]} (placeholder; replace with actual account)", "",
+             "**Owner:** Unassigned role slot; choose the teammate explicitly.", "",
              f"**Owns:** {owns_text(role)}", "", f"**Reviewer:** {role['reviewer']}", ""]
     lines += [task_markdown(task, checkboxes) for task in role["tasks"]]
     return "\n".join(lines)
@@ -523,9 +528,9 @@ def role_markdown(role, checkboxes=False):
 
 def write_markdown(roles, guide):
     lines = ["# Pollution Spotter — Four-member hackathon pipeline", "",
-             "**24-hour core demo · Optional improvements to 36 hours · 48 sequential member tasks**", "",
+             "**AKI HACKS · 31 October 2026 · 10:00-18:00 IST · 24 tasks across four unassigned role slots**", "",
              "Photo + location → vision suggestion → human review → published map report → editable complaint.", "",
-             "This is a planning pack, not an implemented application. All application paths below are files the team will create. No remote repository, Issues or deployment has been created. Replace Member 1–4 and @member1–4 placeholders.", "",
+             "This is a planning pack, not an implemented application. The private [GitHub repository](https://github.com/Godavenger/pollution-spotter) exists. Sangeeta2006451 has write access; Shivi3123 and deeparkai32109-alt have pending write invitations. Godavenger is admin; M1-M4 roles are unassigned. No workstream Issues or application deployment exist. Application paths below are files the team will create.", "",
              "Read the [designed PDF](Pollution_Spotter_4_Member_Pipeline.pdf), use the [GitHub tracker](GITHUB_TRACKER.md), and follow [GitHub setup](docs/GITHUB_SETUP.md). GitHub Issue checkboxes are the shared live checklist; PDF boxes and repository Markdown do not sync with them.", ""]
     lines += [guide_markdown(page) for page in guide["before_roles"]]
     lines += [role_markdown(role) for role in roles]
@@ -533,14 +538,14 @@ def write_markdown(roles, guide):
     (ROOT / "PIPELINE.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
     tracker = ["# Pollution Spotter — GitHub progress tracker", "",
-               "All 48 tasks start unchecked. Copy each member's full checklist into a GitHub Issue and make those four Issues the source of truth. Replace placeholders and paste actual Issue URLs below.", "",
+               "All 24 tasks start unchecked. Copy each role's six-task checklist into a GitHub Issue and use those four Issues as the live record. This is the eight-hour AKI HACKS plan for 31 October 2026, 10:00-18:00 IST. Roles are unassigned until the team agrees; invitations do not establish assignments.", "",
                "You can click checkboxes in a GitHub Issue when you have permission to edit it. In this repository Markdown file, progress changes require editing and committing the file. These copies and the PDF do not update each other automatically.", "",
-               md_table(["Member", "GitHub account (replace)", "Issue URL (replace)", "Full Issue body"],
-                        [[r["id"], f"@member{r['id'][-1]}", "PASTE_ISSUE_URL", f"[member-{r['id'][-1]}.md](github-issues/member-{r['id'][-1]}.md)"] for r in roles]), "",
+               md_table(["Role", "GitHub account", "Issue URL (replace)", "Full Issue body"],
+                        [[r["id"], "Unassigned", "PASTE_ISSUE_URL", f"[member-{r['id'][-1]}.md](github-issues/member-{r['id'][-1]}.md)"] for r in roles]), "",
                "**Completion rule:** check a task only after its Done condition is verified and the Issue has a PR/commit link, screenshot, test result or other evidence. Ask the named reviewer to verify integration tasks. Hours are elapsed from kickoff, not additional estimates.", "",
                "Read [the full pipeline](PIPELINE.md) for step-by-step instructions and [GitHub setup](docs/GITHUB_SETUP.md) for labels, assignments, branches and Project views.", ""]
     for role in roles:
-        tracker += [f"## {role['name']}", "", f"**Owner:** @member{role['id'][-1]} (replace). **Issue:** PASTE_ISSUE_URL", ""]
+        tracker += [f"## {role['name']}", "", "**Owner:** Unassigned. **Issue:** PASTE_ISSUE_URL", ""]
         for task in role["tasks"]:
             tracker += [f"- [ ] **{task['id']} — {task['title']}** · {task['window']}",
                         f"  **Verify:** {task['done']}", ""]
@@ -554,72 +559,87 @@ def write_markdown(roles, guide):
     for role in roles:
         member = role["id"][-1]
         body = [f"# {role['id']}: {ROLE_SHORT[role['id']]}", "",
-                f"**Assignee:** @member{member} — placeholder; choose the actual teammate in GitHub's Assignees sidebar.", "",
+                "**Assignee:** Unassigned role slot. Choose the teammate only after the team agrees; collaborator invitations are not role assignments.", "",
                 f"**Mission:** {role['mission']}", "", f"**Owned files:** {owns_text(role)}", "",
                 f"**Reviewer:** {role['reviewer']}", "",
-                "Follow tasks in order. Hours are elapsed from kickoff; tasks sharing a window are parallel work, not additive durations. Complete the 24-hour demo before optional hardening.", "",
+                "Follow six tasks in order. H0 is 10:00 IST on 31 October 2026; H8 is 18:00. Roles run in parallel. Gates: H1 setup, H3 integrated slice, H5 core or manual fallback, H7 freeze, H8 demo ready. Post-event work is deferred.", "",
                 "Check each box only when its Done condition passes. Add a comment with task ID, PR/commit, screenshot/test evidence and reviewer confirmation. A checkbox does not run a test. Leave blocked/incomplete work unchecked and name the blocker.", "",
                 "The application has not been built by this planning pack; the paths below describe future implementation work.", ""]
         body += [task_markdown(task) for task in role["tasks"]]
         body += ["## Final workstream acceptance", "",
-                 "All twelve Done conditions are verified with evidence; reviewed work is merged; the downstream member has received the handoff. Close this Issue only after that check. PDF/repository checklist copies do not sync automatically.", ""]
+                 "All six Done conditions are verified with evidence; reviewed work is merged; the downstream role has received the handoff. Close this Issue only after that check. Leave incomplete tasks open at the deadline. PDF/repository checklist copies do not sync automatically.", ""]
         (issues_dir / f"member-{member}.md").write_text("\n".join(body), encoding="utf-8")
 
-    readme = """# Pollution Spotter — Hackathon planning pack
+    readme = """# Pollution Spotter - AKI HACKS planning pack
 
-A beginner-friendly, four-member build plan for a **24-hour demo**, with optional improvements up to **36 hours**. Capture a pond/canal photo, suggest visible pollution labels, require human review, publish to a live map, and prepare a complaint for the user to copy or download.
+A four-person, **eight-hour MVP plan** for AKI HACKS on **31 October 2026, 10:00-18:00 IST**, at IEM, GN Block, Sector V, Kolkata. Upload a photo and location, review a conservative visual suggestion or manual fallback, publish a map report, and copy an editable complaint.
 
-**This is a planning pack, not an application scaffold.** No app, remote repository, GitHub Issues or deployment has been created. Application paths in the plan describe what your team will build. All task boxes are initially unchecked.
+**Current status:** the private [GitHub repository](https://github.com/Godavenger/pollution-spotter) exists. `Sangeeta2006451` has accepted write access; `Shivi3123` and `deeparkai32109-alt` have pending write invitations. `Godavenger` is admin; M1-M4 role assignments are unconfirmed. **The application has not been built.** The repository has no workstream Issues or application deployment. The presentation describes a proposed project; no app results or successful submission are claimed.
 
 ## Start here
 
-1. Read [the 22-page pipeline PDF](Pollution_Spotter_4_Member_Pipeline.pdf) together. The PDF cover links to the main sections.
-2. Assign Member 1–4 and replace every `@member1`–`@member4` placeholder with an actual teammate's GitHub account.
-3. Follow [GitHub setup](docs/GITHUB_SETUP.md): create your repository, upload the extracted pack and create four workstream Issues using the supplied bodies.
-4. Follow each member's twelve tasks; check Issue boxes only when their acceptance criteria pass and attach evidence.
+1. Read the [event brief](docs/AKI_HACKS_EVENT_BRIEF.md) and the [18-page pipeline PDF](Pollution_Spotter_4_Member_Pipeline.pdf).
+2. Agree who fills the four unassigned role slots. Follow [GitHub setup](docs/GITHUB_SETUP.md) to use the supplied Issue bodies.
+3. Follow six tasks per role and the shared gates: **H1 setup; H3 integrated slice; H5 core or manual fallback; H7 freeze; H8 ready**.
+4. Review the [six-slide selection PPT](presentations/Pollution_Spotter_AKI_HACKS.pptx) and [PDF preview](presentations/Pollution_Spotter_AKI_HACKS.pdf), built from the [official template](presentations/AKI_HACKS_Official_PPT_Template.pptx). The confirmed team name is **Pollution Spotter** and team leader is **Sharanya Mondal**. Follow the announced submission instructions.
+
+The detailed schedule lists registration at 08:00-10:00 and judging at 18:00-20:00; the header/calendar has a 09:00 start discrepancy. Confirm arrival with organizers. Permission to use code prepared before the event is unknown; this pack does not assume it.
+
+## The eight-hour scope
+
+The core is one persisted end-to-end flow: **photo + location -> private draft -> AI/manual suggestion -> mandatory human review -> publish -> public map -> complaint Copy**.
+
+Photos stay private. Only confirmed labels, a reviewed short description, selected coordinates, publication time and source metadata appear publicly. Samples stay in a clearly labeled separate view. Failed uploads, analysis or saves must not produce invented success.
+
+Hotspots, polling, photo galleries, client compression, complaint downloads/persistence, large model evaluations and broad production hardening are deferred. Six focused visual smoke cases check behavior; they do not establish model accuracy. If Gemini is unavailable, the manual-review flow remains useful. If safe persistence fails, the team must describe the demo as an incomplete prototype.
 
 ## Contents
 
 | File | Purpose |
 | --- | --- |
-| [Pollution_Spotter_4_Member_Pipeline.pdf](Pollution_Spotter_4_Member_Pipeline.pdf) | Designed A4 playbook: scope, contracts, role tasks, integration, tracking and demo. |
+| [Pollution_Spotter_4_Member_Pipeline.pdf](Pollution_Spotter_4_Member_Pipeline.pdf) | Printable A4 playbook with contracts, role tasks, checks and demo guidance. |
 | [PIPELINE.md](PIPELINE.md) | Complete editable text of the playbook. |
-| [GITHUB_TRACKER.md](GITHUB_TRACKER.md) | Forty-eight task checkboxes, grouped by owner, with Issue placeholders. |
-| [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md) | Step-by-step repository, Issue, label, branch and Project setup. |
-| [docs/APP_SETUP.md](docs/APP_SETUP.md) | Copyable starter/dependency commands and safe scaffold merging. |
-| [github-issues/member-1.md](github-issues/member-1.md) | M1: frontend and reporting. |
-| [github-issues/member-2.md](github-issues/member-2.md) | M2: backend, database and deployment. |
-| [github-issues/member-3.md](github-issues/member-3.md) | M3: vision and evaluation. |
-| [github-issues/member-4.md](github-issues/member-4.md) | M4: map, integration QA and demo. |
-| [.github/ISSUE_TEMPLATE/member-workstream.md](.github/ISSUE_TEMPLATE/member-workstream.md) | Workstream Issue template. |
-| [.github/ISSUE_TEMPLATE/bug_report.md](.github/ISSUE_TEMPLATE/bug_report.md) | Reproducible integration bug template. |
-| [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) | Review and evidence template. |
-| [.github/labels.json](.github/labels.json) | Label definitions to create manually; uploading this file does not create labels. |
-| [planning/](planning/) | Reviewed JSON content and shared planning contract. |
-| [scripts/build_pack.py](scripts/build_pack.py) | Rebuilds and validates the planning documents and ZIP. |
+| [GITHUB_TRACKER.md](GITHUB_TRACKER.md) | 24 unchecked implementation tasks across four unassigned roles. |
+| [docs/AKI_HACKS_EVENT_BRIEF.md](docs/AKI_HACKS_EVENT_BRIEF.md) | Verified event details, schedule, template requirements and open questions. |
+| [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md) | Existing repository, invitations, Issues and collaboration setup. |
+| [docs/APP_SETUP.md](docs/APP_SETUP.md) | Proposed scaffold, dependencies and minimum service setup. |
+| [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) | Slide narrative, source/template context and presentation rebuild instructions. |
+| [github-issues/](github-issues/) | Six-task Issue bodies for each role. |
+| [.github/](.github/) | Workstream, bug and PR templates plus label definitions. |
+| [presentations/Pollution_Spotter_AKI_HACKS.pptx](presentations/Pollution_Spotter_AKI_HACKS.pptx) | Six-slide selection proposal using the official structure. |
+| [presentations/Pollution_Spotter_AKI_HACKS.pdf](presentations/Pollution_Spotter_AKI_HACKS.pdf) | Shareable presentation preview. |
+| [presentations/AKI_HACKS_Official_PPT_Template.pptx](presentations/AKI_HACKS_Official_PPT_Template.pptx) | Original official template for reference. |
+| [planning/](planning/) | Reviewed JSON sources and the current planning contract. |
+| [scripts/build_pack.py](scripts/build_pack.py) | Rebuilds and validates the planning PDF, Markdown and handoff ZIP. |
+| [scripts/build_presentation.py](scripts/build_presentation.py) | Rebuilds the proposal PPTX from the preserved official template. |
 
-The downloadable `Pollution_Spotter_GitHub_Pack.zip` bundles the PDF, Markdown, templates and build source. Extract its contents before uploading them to GitHub. The ZIP intentionally does not contain itself, preview renders, caches or installation records.
+The [handoff ZIP](Pollution_Spotter_GitHub_Pack.zip) bundles the plan, presentation, official template, setup documents and build sources. Extract it before uploading files. It excludes preview renders, caches, credentials and the ZIP itself.
 
-## How completion works
+## Completion and implementation
 
-Use the four GitHub Issues as the live progress record. A person who can edit an Issue can click its task boxes. Checking boxes in a repository Markdown file requires editing and committing that file. PDF boxes are printable. **These copies do not synchronize.** A task is done only when its stated Done condition is verified and evidence is attached to the Issue.
+Use the four GitHub Issues as the live progress record once created. A task is done only after its Done condition passes and evidence is attached. Repository Markdown requires edits/commits; PDF boxes are printable. **These copies do not synchronize.** Leave unfinished work unchecked at the event deadline.
 
-## Proposed application stack
-
-Next.js App Router, TypeScript and Tailwind; Supabase Postgres/private Storage/anonymous auth; server-side Gemini through `@google/genai`; React Leaflet with attributed OpenStreetMap tiles; Vercel. M3 selects an available Flash-family model and records the exact model ID after the hour-1 smoke test. There is no model training or automatic complaint sending.
-
-The team must create the application separately and preserve these planning files. Follow the reviewed shared contracts before coding. Manual fallback and mock/sample results must remain visibly labeled.
+The proposed stack is Next.js App Router, TypeScript and Tailwind; Supabase Postgres/private Storage/anonymous auth; server-side Gemini through `@google/genai`; React Leaflet with attributed OpenStreetMap tiles; Vercel. M3 verifies an available model and records the exact ID. There is no model training or automatic complaint sending. Follow the shared contracts before coding.
 
 ## Rebuild this pack
 
-Use Python 3.10+ and install the document-generation dependencies:
+Use Python 3.10+:
 
 ```powershell
 python -m pip install reportlab pypdf Pillow PyMuPDF
 python scripts/build_pack.py
 ```
 
-The builder uses Segoe UI on Windows, Arial if available, or DejaVu Sans on Linux. It validates the 22-page PDF, all 48 task IDs, unchecked tracker/Issue boxes, links and layout bounds. It also writes preview contact sheets and a layout report under `planning/qa/`, which is excluded from the ZIP. These checks validate the planning artifacts; they do not run or claim application tests.
+The builder uses Segoe UI, Arial or DejaVu Sans. It validates all 18 PDF pages, 24 task IDs, eight-hour task windows, unchecked tracker/Issue boxes, local links and layout bounds. Preview contact sheets and a layout report go to `planning/qa/`, excluded from Git and the ZIP. These checks validate planning artifacts; **application tests have not been run**.
+
+To rebuild the editable presentation:
+
+```powershell
+python -m pip install defusedxml
+python scripts/build_presentation.py
+```
+
+Export the rebuilt PPTX to PDF through PowerPoint or a compatible renderer, then rerun `python scripts/build_pack.py` to refresh the ZIP. See the [presentation guide](docs/PRESENTATION_GUIDE.md) for details.
 """
     (ROOT / "README.md").write_text(readme, encoding="utf-8")
 
@@ -636,7 +656,9 @@ def validate_outputs(roles, guide, layout):
     assert len(reader.pages) == TOTAL_PAGES, f"PDF has {len(reader.pages)} pages"
     extracted = [page.extract_text() or "" for page in reader.pages]
     all_text = "\n".join(extracted)
-    role_text = "\n".join(extracted[5:13])
+    role_start = 1 + len(guide["before_roles"])
+    role_end = role_start + len(roles) * (TASKS_PER_ROLE // TASKS_PER_PAGE)
+    role_text = "\n".join(extracted[role_start:role_end])
     all_ids = [task["id"] for role in roles for task in role["tasks"]]
     for task_id in all_ids:
         assert len(re.findall(rf"^{re.escape(task_id)}\s", role_text, re.M)) == 1, task_id
@@ -646,7 +668,7 @@ def validate_outputs(roles, guide, layout):
             task = next(t for r in roles for t in r["tasks"] if t["id"] == task_id)
             for value in [task["title"], *task["steps"], task["done"], task["handoff"]]:
                 assert plain_normalize(value) in page_text, f"Missing PDF content: {task_id}: {value[:55]}"
-    guide_positions = list(range(2, 6)) + list(range(14, 23))
+    guide_positions = list(range(2, role_start + 1)) + list(range(role_end + 1, TOTAL_PAGES + 1))
     for number, page in zip(guide_positions, guide["before_roles"] + guide["after_roles"]):
         page_text = plain_normalize(extracted[number - 1])
         values = [page["title"], page["intro"]]
@@ -664,7 +686,7 @@ def validate_outputs(roles, guide, layout):
             assert plain_normalize(value) in page_text, f"Missing PDF content on page {number}: {value[:70]}"
     assert "\ufffd" not in all_text, "PDF contains Unicode replacement characters"
     assert "<br/>" not in all_text, "Unrendered line-break markup in PDF"
-    for name, count in [("GITHUB_TRACKER.md", 48)] + [(f"github-issues/member-{i}.md", 12) for i in range(1, 5)]:
+    for name, count in [("GITHUB_TRACKER.md", TOTAL_TASKS)] + [(f"github-issues/member-{i}.md", TASKS_PER_ROLE) for i in range(1, 5)]:
         content = (ROOT / name).read_text(encoding="utf-8")
         assert len(re.findall(r"^- \[ \] ", content, re.M)) == count, name
         assert not re.search(r"^- \[[xX]\] ", content, re.M), name
@@ -687,7 +709,7 @@ def validate_outputs(roles, guide, layout):
     assert link_count >= 3, "Cover navigation links missing"
     # Resolve repository-relative Markdown file links; Issue URLs remain explicit placeholders.
     missing_links = []
-    for path in [ROOT / "README.md", ROOT / "PIPELINE.md", ROOT / "GITHUB_TRACKER.md", ROOT / "docs/GITHUB_SETUP.md", ROOT / "docs/APP_SETUP.md"]:
+    for path in [ROOT / "README.md", ROOT / "PIPELINE.md", ROOT / "GITHUB_TRACKER.md", *sorted((ROOT / "docs").glob("*.md"))]:
         content = path.read_text(encoding="utf-8")
         for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", content):
             if re.match(r"https?://|mailto:|#", target):
@@ -696,8 +718,8 @@ def validate_outputs(roles, guide, layout):
             if target_path and not (path.parent / target_path).exists():
                 missing_links.append(f"{path.name}: {target}")
     assert not missing_links, f"Broken local links: {missing_links}"
-    return {"pdf_pages": TOTAL_PAGES, "task_ids": len(all_ids), "tracker_unchecked_boxes": 48,
-            "issue_unchecked_boxes": 48, "pdf_links": link_count,
+    return {"pdf_pages": TOTAL_PAGES, "task_ids": len(all_ids), "tracker_unchecked_boxes": TOTAL_TASKS,
+            "issue_unchecked_boxes": TOTAL_TASKS, "pdf_links": link_count,
             "content_checks": "All task steps/acceptance/handoffs and guide blocks found on intended pages",
             "bounds_checks": "No clipped flowables or text outside page bounds",
             "local_markdown_links": "All resolved", "application_tests": "Not run; planning pack only"}
@@ -729,9 +751,15 @@ def render_previews():
 
 def build_zip():
     files = [PDF_PATH, ROOT / "README.md", ROOT / "PIPELINE.md", ROOT / "GITHUB_TRACKER.md",
-             ROOT / "docs/GITHUB_SETUP.md", ROOT / "docs/APP_SETUP.md", ROOT / "scripts/build_pack.py", PLANNING / "blueprint.md",
+             ROOT / ".gitignore", PLANNING / "blueprint.md",
              PLANNING / "guide.json", *sorted(PLANNING.glob("roles_*.json"))]
     files += sorted((ROOT / "github-issues").glob("*.md"))
+    files += sorted((ROOT / "scripts").glob("*.py"))
+    files += sorted((ROOT / "docs").glob("*.md"))
+    files += sorted(path for path in (ROOT / "presentations").rglob("*")
+                    if path.is_file() and path.suffix.lower() in {".pptx", ".pdf", ".py", ".md", ".json"}
+                    and not path.name.startswith("~$")
+                    and "qa" not in path.relative_to(ROOT / "presentations").parts)
     files += sorted(path for path in (ROOT / ".github").rglob("*") if path.is_file())
     files = sorted(set(files))
     assert all(path.is_file() for path in files)
@@ -742,6 +770,9 @@ def build_zip():
             archive.write(path, relative.as_posix())
     with zipfile.ZipFile(ZIP_PATH) as archive:
         assert archive.testzip() is None
+        assert all(not Path(name).name.startswith("~$") for name in archive.namelist())
+        for path in files:
+            assert archive.read(path.relative_to(ROOT).as_posix()) == path.read_bytes(), path
         return archive.namelist()
 
 

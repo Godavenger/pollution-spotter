@@ -2,307 +2,151 @@
   "roles": [
     {
       "id": "M2",
-      "name": "Member 2 — Backend, database and deployment",
-      "mission": "Turn a private photo draft into one reviewed, published report through secure, predictable server routes.",
-      "owns": "app/api/*; lib/server/*; lib/contracts.ts; lib/supabase/browser.ts (public anonymous auth only); database/*; root configuration",
-      "reviewer": "Member 3 reviews image/model boundaries; Member 4 verifies deployed integration.",
+      "name": "Member 2 - Backend and deployment",
+      "mission": "Persist owner-scoped private drafts and publish only confirmed safe fields through a working HTTPS deployment.",
+      "owns": "app/api/*; lib/server/*; lib/contracts.ts; lib/supabase/browser.ts; database/*; root config",
+      "reviewer": "M3 checks the vision boundary; M4 checks privacy and persistence. Role slots are unassigned.",
       "tasks": [
         {
           "id": "M2-01",
-          "title": "Create the shared development foundation",
-          "window": "H0–1",
+          "title": "Prove setup and freeze the small contract",
+          "window": "H0-1",
           "steps": [
-            "Scaffold Next.js App Router with TypeScript and Tailwind; verify supported Node LTS and commit one lockfile.",
-            "Create Supabase/Vercel projects; deploy the starter; share repository and preview URL.",
-            "Create .env.example with names only; keep real .env.local ignored. Coordinate dependency changes through M2."
+            "Scaffold Next.js once, publish a hello-world HTTPS preview, and check Supabase database, private bucket and anonymous sign-in.",
+            "Own shared types and environment names; agree the three routes with M1/M3/M4 before parallel implementation."
           ],
-          "done": "All four members can run the starter; the Vercel HTTPS preview opens on a phone; no real secrets are committed.",
-          "handoff": "M1/M4 start UI work; give M3 server environment variable names."
+          "done": "The preview loads and service access is verified, or the team explicitly records a prototype-only contingency.",
+          "handoff": "Share the preview, public configuration names and contracts; keep keys private."
         },
         {
           "id": "M2-02",
-          "title": "Freeze request, response and ownership contracts",
-          "window": "H1–2",
+          "title": "Implement private storage and owner checks",
+          "window": "H1-2",
           "steps": [
-            "Define report types, label rules and schemas in lib/contracts.ts; agree POST/PATCH/GET examples with all members.",
-            "Require a client_request_id UUID reused for retries; agree Bearer anonymous-session JWTs and stable error codes.",
-            "Record GEMINI_MODEL, VISION_MODE and server-only key names in .env.example; only the Supabase URL/public key may use NEXT_PUBLIC."
+            "Create the reports schema and private report-photos bucket; deny direct table/storage access for both anon and authenticated client roles.",
+            "Verify the bearer token server-side for writes, check owner_id, and allow only JPEG/PNG/WebP <=3 MB decoded and normalized with metadata stripped."
           ],
-          "done": "All owners accept sample JSON and field names; no frontend component needs a service-role or Gemini key.",
-          "handoff": "M1 sends request IDs/tokens; M3 matches VisionResult; M4 consumes PublicReport."
+          "done": "One session can create its private report data; another session and unauthenticated requests cannot edit it or read private storage.",
+          "handoff": "M1 gets the auth helper and upload errors; M4 gets the privacy-check procedure."
         },
         {
           "id": "M2-03",
-          "title": "Build the private database and photo store",
-          "window": "H2–3",
+          "title": "Deliver the persisted H3 manual slice",
+          "window": "H2-3",
           "steps": [
-            "Add database/schema.sql for reports, UTC timestamps, status/source enums and UNIQUE(owner_id, client_request_id).",
-            "Create a private report-photos bucket with image MIME/size restrictions; enable anonymous sign-in.",
-            "Enable report/storage RLS denying direct browser access; server routes use the service key and explicit ownership checks."
+            "POST one upload and location into a private needs_review draft; allocate one report ID and store the normalized image privately.",
+            "Return editable unclear/manual_fallback when analysis is unavailable; wire owner-only publish of that same row and a published-only public GET."
           ],
-          "done": "Schema applies cleanly; an anonymous browser client cannot read or write rows/photos directly; the server can store one test image.",
-          "handoff": "Share table fields and bucket name with M3; give M1 anonymous-session setup instructions."
+          "done": "A manual draft can be reviewed, published and fetched after reload; failed storage never produces a publishable report.",
+          "handoff": "M1/M4 run H3 against real persistence; fixture-only progress is explicitly marked."
         },
         {
           "id": "M2-04",
-          "title": "Implement authenticated server route boundaries",
-          "window": "H3–4",
+          "title": "Connect vision without blocking publication review",
+          "window": "H3-5",
           "steps": [
-            "Create server-only helpers in lib/server; verify write tokens with getUser(token) and use the verified user ID.",
-            "Validate UUIDs, finite latitude/longitude ranges, note length ≤500 and allowed multipart fields; ignore client ownership/source/demo claims.",
-            "Return consistent JSON errors for missing authentication, invalid inputs, unavailable services and missing/foreign drafts."
+            "Import M3's server-only adapter with a 12-second deadline; validate output and retain manual_fallback on failure.",
+            "Guard analysis updates against published rows; preserve server-set analysis_source/is_demo, require valid reviewed fields and keep the first published_at on repeat publish."
           ],
-          "done": "Missing/invalid tokens fail; two anonymous sessions cannot access each other's draft; errors give M1 an actionable retry or correction state.",
-          "handoff": "M1 wires error rendering; M4 records ownership test cases."
+          "done": "The H5 core runs with live vision or documented manual fallback; mocks stay samples and repeat publish updates the same report.",
+          "handoff": "M4 records the selected H5 mode; M1 gets final response behavior."
         },
         {
           "id": "M2-05",
-          "title": "Create one recoverable private draft",
-          "window": "H4–6",
+          "title": "Verify the release boundaries",
+          "window": "H5-7",
           "steps": [
-            "POST /api/reports in Node: decode JPEG/PNG/WebP with sharp; reject >8 MB or >40 megapixels. Reserve is_demo=true immediately in mock mode.",
-            "Reserve owner/request-ID row; store normalized ≤1600 px metadata-free photo, then image_path. M1 sends ≤3 MB.",
-            "Retries reuse/resume the same row; only INSERT winner invokes AI. Storage/DB errors remain retryable."
+            "Run build/type checks and the privacy matrix: wrong owner, private draft, private photo, missing upload and secret exposure.",
+            "Run the deployed phone flow with M4; fix persistence, source-label or publication blockers before H7."
           ],
-          "done": "One private draft survives retries; publish stays blocked until image_path exists; failed storage never reports success.",
-          "handoff": "M1 renders drafts; M3 gets bytes; M4 verifies."
+          "done": "Required checks have recorded outcomes; the public response omits private fields and only reviewed published rows are visible.",
+          "handoff": "Give M4 the final URL, commit, environment names and unresolved limits."
         },
         {
           "id": "M2-06",
-          "title": "Connect vision with a bounded fallback",
-          "window": "H6–8",
+          "title": "Freeze deployment and record recovery",
+          "window": "H7-8",
           "steps": [
-            "Call M3's server-only analyzeImage({bytes,mimeType}) within a 12-second application timeout; revalidate its result.",
-            "Save valid output as draft/vision; retain needs_review, unclear and manual_fallback on provider, schema or timeout failures.",
-            "Guard delayed updates against published rows. Preserve explicit mock source and demo status; never log keys, photo bytes or base64."
+            "Freeze the reviewed deployment; write exact setup and recovery commands without credentials.",
+            "Rehearse provider failure and explicit sample mode; if storage/auth fails, keep publishing disabled and present a labeled backup/prototype."
           ],
-          "done": "Live, timeout, invalid-output and mock cases return truthful drafts; late model results cannot overwrite publication.",
-          "handoff": "M1 shows review/source states; M3 verifies provider failures with M2."
-        },
-        {
-          "id": "M2-07",
-          "title": "Publish the reviewed report in place",
-          "window": "H8–10",
-          "steps": [
-            "PATCH /api/reports/{id}, action=publish: authenticate owner, require stored image, validate edited location/labels.",
-            "Enforce neutral exclusivity; generate complaints from reviewed labels, coordinates and UTC time, excluding private notes/contact information.",
-            "Update the same row; preserve first published_at on repeat confirmation. Preserve reserved is_demo=true; mock source also forces it."
-          ],
-          "done": "Only owners publish; repeated confirmation creates no duplicate; reviewed fallback publishes; mock data cannot enter the real layer.",
-          "handoff": "M1 unlocks Copy/Download; M4 refreshes the map with the returned published ID."
-        },
-        {
-          "id": "M2-08",
-          "title": "Expose a safe public map response",
-          "window": "H10–12",
-          "steps": [
-            "Implement GET /api/reports with published-only selection and an explicit PublicReport field allowlist.",
-            "Exclude owner IDs, raw image_path fields and raw notes; add short-lived signed photo URLs and retain source/demo labels.",
-            "Bound query size; document ordering/retention; verify map refresh fetches fresh results after publication."
-          ],
-          "done": "H12 live upload/review/publish/map/complaint works; public JSON excludes drafts; every route preserves real/sample distinctions.",
-          "handoff": "M4 uses production-shaped data for polling, hotspots and image-expiry recovery."
-        },
-        {
-          "id": "M2-09",
-          "title": "Test the boundaries that can break the demo",
-          "window": "H12–15",
-          "steps": [
-            "Check cross-owner reads/publishes, invalid coordinates, oversized/corrupt images, unsupported MIME and exclusive-label violations.",
-            "Retry the same request and confirmation; simulate model timeout and a delayed model response after publication.",
-            "Inspect public JSON, signed-link expiry and built client assets for private fields/secrets; document failures for immediate fixes."
-          ],
-          "done": "M4 reproduces ownership/privacy/retry checks; failures have truthful UI responses; no service secret reaches the browser.",
-          "handoff": "Send verified cases and remaining limitations to M4."
-        },
-        {
-          "id": "M2-10",
-          "title": "Prepare controlled sample data and deployment",
-          "window": "H15–18",
-          "steps": [
-            "Create local-only database/seed.ts using server credentials; mark sample rows is_demo=true and keep photos licensed/consented.",
-            "Set Vercel environment values; verify Node runtime, model ID, storage and anonymous-auth configuration.",
-            "Confirm provider quota/host request limits; use a small controlled dataset and bounded image/model requests."
-          ],
-          "done": "Sample hotspots appear only in sample view; clients cannot set is_demo; deployment completes one real submission.",
-          "handoff": "M4 receives the exact seed/reset command and dataset scope; M3 verifies live quota."
-        },
-        {
-          "id": "M2-11",
-          "title": "Verify the deployed phone workflow",
-          "window": "H18–22",
-          "steps": [
-            "Join M4's phone run over HTTPS: camera/file image, location correction, live analysis, review, publish and signed-photo display.",
-            "Recheck compressed upload size against Vercel limits; fix actionable errors for offline/retry and expired anonymous sessions.",
-            "Run repository build/type checks; confirm preview and final deployment use the intended VISION_MODE."
-          ],
-          "done": "The final URL passes the core phone journey twice; quota/network fallback remains clearly labeled; build/type checks pass.",
-          "handoff": "M4 freezes the demo URL; M1 receives final error/response behavior."
-        },
-        {
-          "id": "M2-12",
-          "title": "Freeze the backend and hand over recovery steps",
-          "window": "H22–24",
-          "steps": [
-            "Merge reviewed changes; record deployed commit, environment names and setup/seed commands.",
-            "Give M4 recovery steps for quota failure, manual fallback and deliberate mock/sample mode; mode changes must preserve labels.",
-            "Check completed GitHub Issue tasks with evidence; leave optional hardening open."
-          ],
-          "done": "M4 can recover the demo from written instructions; deployment/configuration are recorded; no core backend task remains unresolved.",
-          "handoff": "M4 incorporates operations notes into docs/demo.md and the judging rehearsal."
+          "done": "M4 can explain and run the chosen contingency; no demo claims a successful save when persistence failed.",
+          "handoff": "Send the operations note and evidence links to M4; leave future hardening open."
         }
       ]
     },
     {
       "id": "M3",
-      "name": "Member 3 — Vision integration and evaluation",
-      "mission": "Produce conservative visual suggestions with measurable limitations and an honest, reliable fallback.",
-      "owns": "lib/vision/*; evaluation/*; tests/vision/*; vision prompt, fixtures and evaluation evidence",
-      "reviewer": "Member 2 reviews server integration and secret handling; Member 1 reviews understandable labels.",
+      "name": "Member 3 - Vision and smoke checks",
+      "mission": "Offer conservative visual suggestions with a bounded server call, honest provenance and a reliable manual fallback.",
+      "owns": "lib/vision/*; evaluation/*; tests/vision/*",
+      "reviewer": "M2 checks server integration and secrets; M1 checks review wording. Role slots are unassigned.",
       "tasks": [
         {
           "id": "M3-01",
-          "title": "Prove the chosen model works immediately",
-          "window": "H0–1",
+          "title": "Smoke-test model access and supply fixtures",
+          "window": "H0-1",
           "steps": [
-            "In Google AI Studio, select a currently available Flash-family vision model; verify access instead of copying an old model ID.",
-            "Coordinate @google/genai installation with M2; run a server-side image request using an environment key.",
-            "Save the passing exact GEMINI_MODEL; record latency/quota errors without keys/images."
+            "Check a currently available Gemini Flash-family vision model using @google/genai on the server; record the exact passing GEMINI_MODEL.",
+            "Give M1/M2 one conservative result fixture and one manual_fallback fixture even if live access is blocked."
           ],
-          "done": "One real image returns successfully, or the team explicitly activates and documents manual/mock contingency.",
-          "handoff": "M2 gets settings; M4 knows live availability."
+          "done": "Live access has a recorded outcome and teammates can build without it; no key or image content is logged.",
+          "handoff": "M2 gets model/configuration names; M4 knows whether live AI is available."
         },
         {
           "id": "M3-02",
-          "title": "Agree the vision boundary and display language",
-          "window": "H1–2",
+          "title": "Write the conservative adapter and schema",
+          "window": "H1-2",
           "steps": [
-            "Agree analyzeImage({bytes:Buffer,mimeType:string}): Promise<VisionResult> with M2 and import shared types from lib/contracts.ts.",
-            "Use only algal_bloom, oil_sheen, garbage, no_visible_pollution and unclear; neutral labels exclude all other labels.",
-            "Return labels, evidence ≤240 characters and review_needed. Tell M1 every result still requires human confirmation."
+            "Implement analyzeImage({bytes,mimeType}) returning allowed unique labels, evidence <=240 characters and boolean review_needed.",
+            "Prompt for visible clues only; reject unsupported labels, conflicting neutrals and invalid output, and apply M2's 12-second deadline."
           ],
-          "done": "M1/M2 accept the sample payload and renderable fixture; types and label meanings agree before the review screen is built.",
-          "handoff": "M1 uses plain-language label captions; M2 can build the adapter call before live integration."
+          "done": "One valid result parses; malformed output and provider failure raise a typed failure for manual review.",
+          "handoff": "M2 imports the server-only adapter and validator; M1 gets plain-language labels."
         },
         {
           "id": "M3-03",
-          "title": "Assemble an honest visual evaluation set",
-          "window": "H2–3",
+          "title": "Verify truthfulness at the H3 slice",
+          "window": "H2-3",
           "steps": [
-            "Collect 20 consented/licensed images in evaluation/ with provenance; avoid faces, number plates and private metadata.",
-            "Assign four primary examples per label, including glare mistaken for oil, reflections/vegetation, blur and mixed visible pollution.",
-            "Record expected visible-label sets in evaluation/cases.csv; two teammates flag ambiguous examples without forcing certainty."
+            "Run valid, unclear, malformed and unavailable-provider fixtures through M2's route.",
+            "Check failure uses unclear/manual_fallback; deliberate mock mode must mark is_demo=true from draft creation and remain a sample after review."
           ],
-          "done": "All 20 cases have provenance, expected labels and ambiguity notes; expectations describe visible appearance only.",
-          "handoff": "M1/M4 receive a small clearly marked demo subset; preserve separate evaluation cases."
+          "done": "M1/M4 can distinguish live suggestions, manual review and simulated samples; no fallback is presented as successful AI.",
+          "handoff": "Record H3 fixture outcomes and send any metadata/schema fix to M2."
         },
         {
           "id": "M3-04",
-          "title": "Write a conservative prompt and output schema",
-          "window": "H3–4",
+          "title": "Run six focused visual smoke cases",
+          "window": "H3-5",
           "steps": [
-            "Create lib/vision/prompt.ts: inspect visible water-surface cues; choose unclear when the photo cannot support a label.",
-            "Prohibit toxin, chemistry, drinking-safety and confidence-percentage claims; require brief evidence tied to visible features.",
-            "Define structured JSON and strict validation: nonempty allowed labels, uniqueness, neutral exclusivity, evidence length and boolean review_needed."
+            "Use six consented/licensed small images: visible litter, green surface, sheen-like surface, clean/glare, blur and mixed/ambiguous content.",
+            "Record provenance, expected visible cues, actual labels, source and failure; choose live or manual contingency with M2 at H5."
           ],
-          "done": "Valid single/multiple pollution labels pass; empty labels, mixed neutrals, invented enums and oversized evidence fail.",
-          "handoff": "M2 imports the validator; M1 confirms the wording is understandable and editable."
+          "done": "Six case outcomes or explicit access failures are recorded; selected examples are not described as model accuracy.",
+          "handoff": "M4 gets honest examples and limitations; M1 gets any confusing wording."
         },
         {
           "id": "M3-05",
-          "title": "Build the server-only live vision adapter",
-          "window": "H4–6",
+          "title": "Fix one material error and verify the fallback",
+          "window": "H5-7",
           "steps": [
-            "Implement server-only lib/vision/analyze.ts using @google/genai, GEMINI_MODEL and normalized image bytes.",
-            "Request structured JSON and validate the returned data; throw typed errors for empty, invalid, blocked or failed responses.",
-            "Configure provider timeout/retries to fit M2's 12-second deadline; avoid uncontrolled automatic retries and log only safe diagnostics."
+            "Make at most one focused prompt/schema correction for a demonstrated error; rerun affected smoke cases and preserve outcomes.",
+            "Check the final deployment's live request, provider failure and mock/sample labels; confirm every result still requires human review."
           ],
-          "done": "A sample produces valid VisionResult; malformed/provider-failed responses produce typed failures; logs contain no keys/images.",
-          "handoff": "M2 imports the adapter for the draft route; coordinate dependency changes through M2."
+          "done": "The final model/prompt version and tested behavior are recorded; no unsupported water-safety or toxin claim appears.",
+          "handoff": "M2 freezes the prompt/model; M4 gets the verified AI explanation."
         },
         {
           "id": "M3-06",
-          "title": "Supply explicit mocks for the H6 thin slice",
-          "window": "H4–6",
+          "title": "Prepare evidence and freeze vision",
+          "window": "H7-8",
           "steps": [
-            "Provide deterministic fixtures for successful labels, unclear, malformed output, timeout and provider error in tests/vision/fixtures.",
-            "Implement deliberate VISION_MODE=mock behavior; require server metadata analysis_source=mock and is_demo=true for publication.",
-            "Run the H6 upload/review contract check with M1/M2/M4; verify manual_fallback differs visibly from successful live vision."
+            "Freeze the adapter and prompt; add smoke results, model ID and known limits to evaluation/README.md.",
+            "Give M4 one live example if available and a clearly labeled fallback example; rehearse without changing models late."
           ],
-          "done": "The thin slice works without model access; all participants can identify live, manual fallback and mock results correctly.",
-          "handoff": "M4 receives repeatable failure fixtures; M2 preserves source/demo metadata outside VisionResult."
-        },
-        {
-          "id": "M3-07",
-          "title": "Harden validation and failure handling",
-          "window": "H6–9",
-          "steps": [
-            "Add meaningful tests for wrong types/enums, duplicate labels, neutral conflicts, overly long evidence, missing fields and provider failures.",
-            "Verify rejected output becomes needs_review/unclear/manual_fallback through M2's route instead of invented AI success.",
-            "Check a delayed provider response cannot overwrite a published row; confirm mock metadata survives review/publish."
-          ],
-          "done": "Boundary tests pass and each invalid provider case produces a reviewable truthful fallback; delayed output cannot change a confirmed report.",
-          "handoff": "M2 owns route/update fixes; M1 owns clear fallback explanations."
-        },
-        {
-          "id": "M3-08",
-          "title": "Complete the live H12 integration gate",
-          "window": "H9–12",
-          "steps": [
-            "Run deployed uploads for garbage, surface-green water, sheen-like appearance and an unclear/clean image.",
-            "Confirm normalization preserves detail and model evidence stays brief and tied to visible features.",
-            "Review/edit labels before publish; verify source metadata, complaint wording and map behavior for neutral results."
-          ],
-          "done": "A live image completes the journey; neutral/unclear results never become hotspots; failures remain usable through review.",
-          "handoff": "M4 records H12 acceptance; M1/M2 fix any integration issue before presentation polish."
-        },
-        {
-          "id": "M3-09",
-          "title": "Measure model mistakes on the sample set",
-          "window": "H12–15",
-          "steps": [
-            "Run 20 annotated images with the frozen model/prompt; save expected/predicted labels, latency and failure/source in evaluation/results.csv.",
-            "Count exact label-set matches, per-label misses and false positives; inspect clean/glare examples for overcalling.",
-            "Record invalid outputs and timeouts separately; do not count manual/mock results as successful AI predictions."
-          ],
-          "done": "All 20 cases have results/false-positive notes; counts include denominators and describe this small sample only.",
-          "handoff": "M4 gets honest judging evidence; M1 gets examples that need clearer review guidance."
-        },
-        {
-          "id": "M3-10",
-          "title": "Fix the clearest errors and verify the change",
-          "window": "H15–18",
-          "steps": [
-            "Make one focused prompt revision for recurring glare/vegetation/ambiguity errors; preserve original results.",
-            "Rerun affected cases and five newly sourced unseen checks; record versions and changed outcomes separately.",
-            "Document persistent errors and strengthen review/unclear guidance; never present selected examples as broad accuracy."
-          ],
-          "done": "Final prompt is versioned; regressions/limits are recorded; false positives have mitigation or documented limitations.",
-          "handoff": "M2 deploys the final prompt; M4 uses only verified claims in the demo script."
-        },
-        {
-          "id": "M3-11",
-          "title": "Rehearse live and contingency demonstrations",
-          "window": "H18–22",
-          "steps": [
-            "Check model access/quota; run a real phone photo on the final deployment with M4.",
-            "Rehearse unavailable-provider manual review and deliberate mock mode; mock output enters only the sample layer.",
-            "Prepare three sourced demo photos; explain why visual labels cannot establish water safety."
-          ],
-          "done": "Live/contingency paths are rehearsed; the presenter names the active mode and explains limits without unsupported claims.",
-          "handoff": "M4 gets photos, provenance, expected behavior and a short vision explanation."
-        },
-        {
-          "id": "M3-12",
-          "title": "Freeze vision and attach evidence to GitHub",
-          "window": "H22–24",
-          "steps": [
-            "Merge reviewed changes; record exact model ID, prompt version, test command and limitations in evaluation/README.md.",
-            "Link schema-test output/evaluation counts in the assigned Issue; check completed items; leave optional improvements open.",
-            "Help M4 capture a backup identifying sample/manual/mock content; avoid late model/prompt changes."
-          ],
-          "done": "Frozen model/prompt matches deployment; teammates can open evidence links; fallback never appears as live AI success.",
-          "handoff": "M4 incorporates evaluation and contingency evidence into docs/demo.md and the judging presentation."
+          "done": "Rehearsal names the active mode and uses real recorded evidence; missing live access is disclosed plainly.",
+          "handoff": "M4 receives demo images with provenance and a brief limitations statement."
         }
       ]
     }

@@ -21,3 +21,6 @@ out/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Microsoft Office temporary lock files
+~$*.pptx

@@ -17,7 +17,7 @@
   {
     "name": "role:m4-map-integration",
     "color": "D97706",
-    "description": "Member 4: map, hotspots, integration QA, project, and demo"
+    "description": "Member 4: public map, integration QA, project, and demo"
   },
   {
     "name": "type:workstream",
@@ -42,6 +42,6 @@
   {
     "name": "scope:optional",
     "color": "C5DEF5",
-    "description": "Hour 24-36 improvements after the required demo passes"
+    "description": "Post-event improvements after the eight-hour core passes"
   }
 ]

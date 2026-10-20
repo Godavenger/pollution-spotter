@@ -1,127 +1,73 @@
 # M4: Map, integration & demo
 
-**Assignee:** @member4 — placeholder; choose the actual teammate in GitHub's Assignees sidebar.
+**Assignee:** Unassigned role slot. Choose the teammate only after the team agrees; collaborator invitations are not role assignments.
 
-**Mission:** Make published reports visible on a clear map, verify the end-to-end flow and keep GitHub progress and the demo accurate.
+**Mission:** Join the workstreams into a credible map demonstration and keep the eight-hour gates visible.
 
-**Owned files:** components/map/*; lib/hotspots.ts; tests/e2e/*; docs/demo.md; planning trackers
+**Owned files:** components/map/*; integration-checks/*; docs/demo.md; GitHub workstream tracking
 
-**Reviewer:** Member 1 reviews map usability; Member 2 reviews data handling and integration.
+**Reviewer:** M1 checks map usability; M2 checks public fields. Role slots are unassigned.
 
-Follow tasks in order. Hours are elapsed from kickoff; tasks sharing a window are parallel work, not additive durations. Complete the 24-hour demo before optional hardening.
+Follow six tasks in order. H0 is 10:00 IST on 31 October 2026; H8 is 18:00. Roles run in parallel. Gates: H1 setup, H3 integrated slice, H5 core or manual fallback, H7 freeze, H8 demo ready. Post-event work is deferred.
 
 Check each box only when its Done condition passes. Add a comment with task ID, PR/commit, screenshot/test evidence and reviewer confirmation. A checkbox does not run a test. Leave blocked/incomplete work unchecked and name the blocker.
 
 The application has not been built by this planning pack; the paths below describe future implementation work.
 
-- [ ] **M4-01 — Set up the team's GitHub tracker** · H0-1
+- [ ] **M4-01 — Set the eight-hour gates and map boundary** · H0-1
 
-  1. After the team creates its repository, copy the supplied role checklists into four GitHub Issues; replace @member1-4 placeholders with real teammates.
-  2. Assign owners and add Todo, In progress, Blocked, Review and Done project statuses; link blockers and pull requests.
+  1. Record who fills M1-M4 after the team agrees; prepare four workstream Issues without inventing assignments.
+  2. Agree public map props with M1/M2, prepare small visibly labeled fixtures and display H1/H3/H5/H7/H8 gates.
 
-  **Done:** Every member has an assigned Issue and can tick its tasks; the team knows repository Markdown requires editing/committing.
+  **Done:** Each role slot is assigned by the team or clearly unassigned; shared map/report types and gate times are visible.
 
-  **Handoff:** All members use Issues as the task record; PDF boxes do not synchronize.
+  **Handoff:** All roles get Issue links and the next integration time.
 
-- [ ] **M4-02 — Agree on map inputs and hotspot rules** · H1-2
+- [ ] **M4-02 — Build a pins-only public map** · H1-2
 
-  1. Review public report fields with M2 and picker/refresh callbacks with M1; record agreements in docs/demo.md.
-  2. Fix the demo center/reference latitude and agree on approximate 100 m projected bins, trailing 24-hour timestamps and separate real/sample counts.
+  1. Render React Leaflet client-side with OpenStreetMap attribution; show published pins with confirmed description, labels, time and source.
+  2. Make real reports the default; put is_demo fixtures in a separate Sample view. Provide empty/error state and a Refresh action.
 
-  **Done:** Team agrees that three published pollution report records form a hotspot; records are not verified independent observations.
+  **Done:** Fixtures render without SSR errors, sample badges are visible, and private fields/photos are not required.
 
-  **Handoff:** M2 supplies public report fixtures; M1 supplies the client-only map mount.
+  **Handoff:** M1 receives the map component; M2 receives public GET expectations.
 
-- [ ] **M4-03 — Render the client-only Leaflet map** · H2-3
+- [ ] **M4-03 — Run the H3 integration gate** · H2-3
 
-  1. Build components/map/MapView.tsx with React Leaflet, Leaflet CSS and OpenStreetMap tiles; keep attribution visible.
-  2. Show the chosen demo area, clear marker colors/labels and an honest empty state; default to real reports.
+  1. Connect M1's map slot to M2's public GET and refresh after publication; do not add background polling or hotspots.
+  2. Run upload -> manual/sample review -> publish -> reload -> map with all roles and record the first failing boundary.
 
-  **Done:** Map loads in M1's workspace without SSR errors, and attribution stays readable on a phone.
+  **Done:** A persisted manual flow reaches the map, or the exact missing boundary is documented as prototype-only progress.
 
-  **Handoff:** M1 imports MapView through the agreed client-only wrapper.
+  **Handoff:** Send each blocker to its role owner; pause polish until the slice works.
 
-- [ ] **M4-04 — Build the location picker** · H3-4
+- [ ] **M4-04 — Accept the H5 core or lock the fallback** · H3-5
 
-  1. Create components/map/LocationPicker.tsx with tap-to-place and draggable pin behavior; emit validated latitude/longitude through the agreed callback.
-  2. Accept M1's browser-location result for recentering and keep the selected pin visibly distinct from published markers.
+  1. Run the complete flow including complaint Copy; record whether analysis was live, manual_fallback or sample/mock.
+  2. Check with M2 that another session cannot publish the draft and a private draft is absent from public GET.
 
-  **Done:** M1 can select and correct a location without GPS; selecting a pin alone never creates a public report.
+  **Done:** The end-to-end persisted flow passes, with live AI or a truthful manual fallback; unresolved core gaps are named.
 
-  **Handoff:** Unblocks M1-04; M1 stores the confirmed coordinates.
+  **Handoff:** Tell all roles the frozen demo mode and only the blockers remaining before H7.
 
-- [ ] **M4-05 — Fetch and refresh published reports** · H4-5
+- [ ] **M4-05 — Freeze after phone and privacy checks** · H5-7
 
-  1. In components/map/useReports.ts, use production-shaped fixtures until M2 provides GET /api/reports; fetch on load and after M1's publish callback.
-  2. Poll every 10 seconds while visible, refresh on return, and clean up timers; show loading, error and last-successful-update states.
+  1. Run the small QA matrix on the deployed URL, including phone upload, denied GPS, AI failure, repeat publish and sample separation.
+  2. Draft a three-minute rehearsal script around one report; keep the six-slide selection deck framed as a proposal until implementation is verified.
 
-  **Done:** Production-shaped fixtures verify refresh and stale/error states; M4-08 verifies live second-browser updates after M2 delivers GET.
+  **Done:** Evidence and limitations are attached; the team freezes at 17:00 with an honest script and no new features.
 
-  **Handoff:** M2 guarantees published-only safe fields and fresh signed image URLs; describe this as polling.
+  **Handoff:** M1/M2/M3 receive the final blocker list and judging order.
 
-- [ ] **M4-06 — Calculate report-density hotspots** · H5-6
+- [ ] **M4-06 — Rehearse and package the demo** · H7-8
 
-  1. Implement the frozen projected-bin formula in lib/hotspots.ts; count each eligible published record once and split real/sample datasets.
-  2. Check threshold, multilabel, time-boundary and neutral-label cases in tests/e2e/hotspots.spec.ts; show the H6 mocked map slice.
+  1. Rehearse once on the frozen deployment and prepare a labeled recording/screenshots if the network fails.
+  2. Record actual implementation status, URL/commit and uncompleted tasks; follow the announced submission rules at 18:00.
 
-  **Done:** Three recent pollution records in one bin trigger a hotspot; unclear/no_visible_pollution, old or cross-layer records cannot inflate it.
+  **Done:** The team is ready at 18:00 and can clearly separate working software, fallback behavior, samples and future plans.
 
-  **Handoff:** M2 reviews timestamp/filter logic; M1 reviews the report-density wording.
-
-- [ ] **M4-07 — Make sample data unmistakable** · H6-8
-
-  1. Add separate real and Sample demo views in MapView.tsx; label sample markers, popup details and hotspot counts clearly.
-  2. Use only M2's server seed flow for demonstration fixtures; verify mock analysis reports appear exclusively in the sample view.
-
-  **Done:** Switching views never combines counts; sample activity cannot be mistaken for real public reports.
-
-  **Handoff:** M2 controls demo insertion; M3 provides labeled mock fixtures; M1 displays matching source badges.
-
-- [ ] **M4-08 — Pass the complete-flow integration gate** · H8-12
-
-  1. Exercise photo to draft to human review to publish to map to complaint; record the result in docs/demo.md.
-  2. Verify drafts stay hidden, publication keeps one report ID, immediate refresh works, and a second browser receives the report through polling.
-
-  **Done:** H12 deployed flow works with real vision. Record labeled manual/mock contingency if needed, but leave the live gate unmet.
-
-  **Handoff:** Route blockers to M1/M2/M3 immediately; defer visual polish until this gate passes.
-
-- [ ] **M4-09 — Verify ownership and public-data boundaries** · H12-15
-
-  1. With M2, use two anonymous sessions to verify one owner cannot edit/publish the other's draft and unauthenticated writes fail.
-  2. Check public JSON excludes owner IDs, raw image_path fields and private notes; confirm private storage cannot be listed/read directly.
-
-  **Done:** Record passing checks in docs/demo.md and useful regressions in tests/e2e/report-flow.spec.ts; no credentials appear in evidence.
-
-  **Handoff:** M2 fixes authorization/storage issues before the release gate.
-
-- [ ] **M4-10 — Test failures and phone map behavior** · H15-18
-
-  1. Check slow/failed vision, duplicate retries, denied location, empty results, network loss and signed-photo URL refresh; log defects in GitHub Issues.
-  2. Test map controls/popups at phone width, attribution, sample badges and polling cleanup when hidden or unmounted.
-
-  **Done:** Required failure paths recover without fabricated success or duplicate counts; unresolved demo blockers have owners.
-
-  **Handoff:** M1 fixes UX, M2 fixes requests/data, M3 fixes adapter failures; M4 retests the fixes.
-
-- [ ] **M4-11 — Rehearse the map-fill demonstration** · H18-22
-
-  1. Write docs/demo.md with a three-minute script: photo, reviewed visual suggestion, new marker, report-density hotspot and copied complaint.
-  2. Rehearse with all members; use a clearly labeled sample view for staged map filling and explain that refresh uses 10-second polling.
-
-  **Done:** Everyone knows their speaking/action cue; live behavior and sample scenes are distinguishable, with a recorded backup available.
-
-  **Handoff:** M1 operates reporting screens; M2 monitors deployment; M3 explains vision limits; M4 narrates the map.
-
-- [ ] **M4-12 — Close verified tasks and freeze the demo** · H22-24
-
-  1. Run final phone and second-browser checks on M2's release URL; save commit hash, screenshots, video and known limitations in docs/demo.md.
-  2. Tick verified Issue tasks, link evidence and move reviewed work to Done; leave unfinished items open and rehearse the backup switch.
-
-  **Done:** The judging URL, release version, checked task evidence and honest backup demo are accessible to all four teammates.
-
-  **Handoff:** All members stop feature work; optional H24-36 improvements start only after acceptance passes.
+  **Handoff:** All four members receive the demo script, backup and known limitations.
 
 ## Final workstream acceptance
 
-All twelve Done conditions are verified with evidence; reviewed work is merged; the downstream member has received the handoff. Close this Issue only after that check. PDF/repository checklist copies do not sync automatically.
+All six Done conditions are verified with evidence; reviewed work is merged; the downstream role has received the handoff. Close this Issue only after that check. Leave incomplete tasks open at the deadline. PDF/repository checklist copies do not sync automatically.

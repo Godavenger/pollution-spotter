@@ -1,139 +1,73 @@
 # M2: Backend & deployment
 
-**Assignee:** @member2 — placeholder; choose the actual teammate in GitHub's Assignees sidebar.
+**Assignee:** Unassigned role slot. Choose the teammate only after the team agrees; collaborator invitations are not role assignments.
 
-**Mission:** Turn a private photo draft into one reviewed, published report through secure, predictable server routes.
+**Mission:** Persist owner-scoped private drafts and publish only confirmed safe fields through a working HTTPS deployment.
 
-**Owned files:** app/api/*; lib/server/*; lib/contracts.ts; lib/supabase/browser.ts (public anonymous auth only); database/*; root configuration
+**Owned files:** app/api/*; lib/server/*; lib/contracts.ts; lib/supabase/browser.ts; database/*; root config
 
-**Reviewer:** Member 3 reviews image/model boundaries; Member 4 verifies deployed integration.
+**Reviewer:** M3 checks the vision boundary; M4 checks privacy and persistence. Role slots are unassigned.
 
-Follow tasks in order. Hours are elapsed from kickoff; tasks sharing a window are parallel work, not additive durations. Complete the 24-hour demo before optional hardening.
+Follow six tasks in order. H0 is 10:00 IST on 31 October 2026; H8 is 18:00. Roles run in parallel. Gates: H1 setup, H3 integrated slice, H5 core or manual fallback, H7 freeze, H8 demo ready. Post-event work is deferred.
 
 Check each box only when its Done condition passes. Add a comment with task ID, PR/commit, screenshot/test evidence and reviewer confirmation. A checkbox does not run a test. Leave blocked/incomplete work unchecked and name the blocker.
 
 The application has not been built by this planning pack; the paths below describe future implementation work.
 
-- [ ] **M2-01 — Create the shared development foundation** · H0–1
+- [ ] **M2-01 — Prove setup and freeze the small contract** · H0-1
 
-  1. Scaffold Next.js App Router with TypeScript and Tailwind; verify supported Node LTS and commit one lockfile.
-  2. Create Supabase/Vercel projects; deploy the starter; share repository and preview URL.
-  3. Create .env.example with names only; keep real .env.local ignored. Coordinate dependency changes through M2.
+  1. Scaffold Next.js once, publish a hello-world HTTPS preview, and check Supabase database, private bucket and anonymous sign-in.
+  2. Own shared types and environment names; agree the three routes with M1/M3/M4 before parallel implementation.
 
-  **Done:** All four members can run the starter; the Vercel HTTPS preview opens on a phone; no real secrets are committed.
+  **Done:** The preview loads and service access is verified, or the team explicitly records a prototype-only contingency.
 
-  **Handoff:** M1/M4 start UI work; give M3 server environment variable names.
+  **Handoff:** Share the preview, public configuration names and contracts; keep keys private.
 
-- [ ] **M2-02 — Freeze request, response and ownership contracts** · H1–2
+- [ ] **M2-02 — Implement private storage and owner checks** · H1-2
 
-  1. Define report types, label rules and schemas in lib/contracts.ts; agree POST/PATCH/GET examples with all members.
-  2. Require a client_request_id UUID reused for retries; agree Bearer anonymous-session JWTs and stable error codes.
-  3. Record GEMINI_MODEL, VISION_MODE and server-only key names in .env.example; only the Supabase URL/public key may use NEXT_PUBLIC.
+  1. Create the reports schema and private report-photos bucket; deny direct table/storage access for both anon and authenticated client roles.
+  2. Verify the bearer token server-side for writes, check owner_id, and allow only JPEG/PNG/WebP <=3 MB decoded and normalized with metadata stripped.
 
-  **Done:** All owners accept sample JSON and field names; no frontend component needs a service-role or Gemini key.
+  **Done:** One session can create its private report data; another session and unauthenticated requests cannot edit it or read private storage.
 
-  **Handoff:** M1 sends request IDs/tokens; M3 matches VisionResult; M4 consumes PublicReport.
+  **Handoff:** M1 gets the auth helper and upload errors; M4 gets the privacy-check procedure.
 
-- [ ] **M2-03 — Build the private database and photo store** · H2–3
+- [ ] **M2-03 — Deliver the persisted H3 manual slice** · H2-3
 
-  1. Add database/schema.sql for reports, UTC timestamps, status/source enums and UNIQUE(owner_id, client_request_id).
-  2. Create a private report-photos bucket with image MIME/size restrictions; enable anonymous sign-in.
-  3. Enable report/storage RLS denying direct browser access; server routes use the service key and explicit ownership checks.
+  1. POST one upload and location into a private needs_review draft; allocate one report ID and store the normalized image privately.
+  2. Return editable unclear/manual_fallback when analysis is unavailable; wire owner-only publish of that same row and a published-only public GET.
 
-  **Done:** Schema applies cleanly; an anonymous browser client cannot read or write rows/photos directly; the server can store one test image.
+  **Done:** A manual draft can be reviewed, published and fetched after reload; failed storage never produces a publishable report.
 
-  **Handoff:** Share table fields and bucket name with M3; give M1 anonymous-session setup instructions.
+  **Handoff:** M1/M4 run H3 against real persistence; fixture-only progress is explicitly marked.
 
-- [ ] **M2-04 — Implement authenticated server route boundaries** · H3–4
+- [ ] **M2-04 — Connect vision without blocking publication review** · H3-5
 
-  1. Create server-only helpers in lib/server; verify write tokens with getUser(token) and use the verified user ID.
-  2. Validate UUIDs, finite latitude/longitude ranges, note length ≤500 and allowed multipart fields; ignore client ownership/source/demo claims.
-  3. Return consistent JSON errors for missing authentication, invalid inputs, unavailable services and missing/foreign drafts.
+  1. Import M3's server-only adapter with a 12-second deadline; validate output and retain manual_fallback on failure.
+  2. Guard analysis updates against published rows; preserve server-set analysis_source/is_demo, require valid reviewed fields and keep the first published_at on repeat publish.
 
-  **Done:** Missing/invalid tokens fail; two anonymous sessions cannot access each other's draft; errors give M1 an actionable retry or correction state.
+  **Done:** The H5 core runs with live vision or documented manual fallback; mocks stay samples and repeat publish updates the same report.
 
-  **Handoff:** M1 wires error rendering; M4 records ownership test cases.
+  **Handoff:** M4 records the selected H5 mode; M1 gets final response behavior.
 
-- [ ] **M2-05 — Create one recoverable private draft** · H4–6
+- [ ] **M2-05 — Verify the release boundaries** · H5-7
 
-  1. POST /api/reports in Node: decode JPEG/PNG/WebP with sharp; reject >8 MB or >40 megapixels. Reserve is_demo=true immediately in mock mode.
-  2. Reserve owner/request-ID row; store normalized ≤1600 px metadata-free photo, then image_path. M1 sends ≤3 MB.
-  3. Retries reuse/resume the same row; only INSERT winner invokes AI. Storage/DB errors remain retryable.
+  1. Run build/type checks and the privacy matrix: wrong owner, private draft, private photo, missing upload and secret exposure.
+  2. Run the deployed phone flow with M4; fix persistence, source-label or publication blockers before H7.
 
-  **Done:** One private draft survives retries; publish stays blocked until image_path exists; failed storage never reports success.
+  **Done:** Required checks have recorded outcomes; the public response omits private fields and only reviewed published rows are visible.
 
-  **Handoff:** M1 renders drafts; M3 gets bytes; M4 verifies.
+  **Handoff:** Give M4 the final URL, commit, environment names and unresolved limits.
 
-- [ ] **M2-06 — Connect vision with a bounded fallback** · H6–8
+- [ ] **M2-06 — Freeze deployment and record recovery** · H7-8
 
-  1. Call M3's server-only analyzeImage({bytes,mimeType}) within a 12-second application timeout; revalidate its result.
-  2. Save valid output as draft/vision; retain needs_review, unclear and manual_fallback on provider, schema or timeout failures.
-  3. Guard delayed updates against published rows. Preserve explicit mock source and demo status; never log keys, photo bytes or base64.
+  1. Freeze the reviewed deployment; write exact setup and recovery commands without credentials.
+  2. Rehearse provider failure and explicit sample mode; if storage/auth fails, keep publishing disabled and present a labeled backup/prototype.
 
-  **Done:** Live, timeout, invalid-output and mock cases return truthful drafts; late model results cannot overwrite publication.
+  **Done:** M4 can explain and run the chosen contingency; no demo claims a successful save when persistence failed.
 
-  **Handoff:** M1 shows review/source states; M3 verifies provider failures with M2.
-
-- [ ] **M2-07 — Publish the reviewed report in place** · H8–10
-
-  1. PATCH /api/reports/{id}, action=publish: authenticate owner, require stored image, validate edited location/labels.
-  2. Enforce neutral exclusivity; generate complaints from reviewed labels, coordinates and UTC time, excluding private notes/contact information.
-  3. Update the same row; preserve first published_at on repeat confirmation. Preserve reserved is_demo=true; mock source also forces it.
-
-  **Done:** Only owners publish; repeated confirmation creates no duplicate; reviewed fallback publishes; mock data cannot enter the real layer.
-
-  **Handoff:** M1 unlocks Copy/Download; M4 refreshes the map with the returned published ID.
-
-- [ ] **M2-08 — Expose a safe public map response** · H10–12
-
-  1. Implement GET /api/reports with published-only selection and an explicit PublicReport field allowlist.
-  2. Exclude owner IDs, raw image_path fields and raw notes; add short-lived signed photo URLs and retain source/demo labels.
-  3. Bound query size; document ordering/retention; verify map refresh fetches fresh results after publication.
-
-  **Done:** H12 live upload/review/publish/map/complaint works; public JSON excludes drafts; every route preserves real/sample distinctions.
-
-  **Handoff:** M4 uses production-shaped data for polling, hotspots and image-expiry recovery.
-
-- [ ] **M2-09 — Test the boundaries that can break the demo** · H12–15
-
-  1. Check cross-owner reads/publishes, invalid coordinates, oversized/corrupt images, unsupported MIME and exclusive-label violations.
-  2. Retry the same request and confirmation; simulate model timeout and a delayed model response after publication.
-  3. Inspect public JSON, signed-link expiry and built client assets for private fields/secrets; document failures for immediate fixes.
-
-  **Done:** M4 reproduces ownership/privacy/retry checks; failures have truthful UI responses; no service secret reaches the browser.
-
-  **Handoff:** Send verified cases and remaining limitations to M4.
-
-- [ ] **M2-10 — Prepare controlled sample data and deployment** · H15–18
-
-  1. Create local-only database/seed.ts using server credentials; mark sample rows is_demo=true and keep photos licensed/consented.
-  2. Set Vercel environment values; verify Node runtime, model ID, storage and anonymous-auth configuration.
-  3. Confirm provider quota/host request limits; use a small controlled dataset and bounded image/model requests.
-
-  **Done:** Sample hotspots appear only in sample view; clients cannot set is_demo; deployment completes one real submission.
-
-  **Handoff:** M4 receives the exact seed/reset command and dataset scope; M3 verifies live quota.
-
-- [ ] **M2-11 — Verify the deployed phone workflow** · H18–22
-
-  1. Join M4's phone run over HTTPS: camera/file image, location correction, live analysis, review, publish and signed-photo display.
-  2. Recheck compressed upload size against Vercel limits; fix actionable errors for offline/retry and expired anonymous sessions.
-  3. Run repository build/type checks; confirm preview and final deployment use the intended VISION_MODE.
-
-  **Done:** The final URL passes the core phone journey twice; quota/network fallback remains clearly labeled; build/type checks pass.
-
-  **Handoff:** M4 freezes the demo URL; M1 receives final error/response behavior.
-
-- [ ] **M2-12 — Freeze the backend and hand over recovery steps** · H22–24
-
-  1. Merge reviewed changes; record deployed commit, environment names and setup/seed commands.
-  2. Give M4 recovery steps for quota failure, manual fallback and deliberate mock/sample mode; mode changes must preserve labels.
-  3. Check completed GitHub Issue tasks with evidence; leave optional hardening open.
-
-  **Done:** M4 can recover the demo from written instructions; deployment/configuration are recorded; no core backend task remains unresolved.
-
-  **Handoff:** M4 incorporates operations notes into docs/demo.md and the judging rehearsal.
+  **Handoff:** Send the operations note and evidence links to M4; leave future hardening open.
 
 ## Final workstream acceptance
 
-All twelve Done conditions are verified with evidence; reviewed work is merged; the downstream member has received the handoff. Close this Issue only after that check. PDF/repository checklist copies do not sync automatically.
+All six Done conditions are verified with evidence; reviewed work is merged; the downstream role has received the handoff. Close this Issue only after that check. Leave incomplete tasks open at the deadline. PDF/repository checklist copies do not sync automatically.
