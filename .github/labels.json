@@ -1,0 +1,47 @@
+[
+  {
+    "name": "role:m1-frontend",
+    "color": "2563EB",
+    "description": "Member 1: upload, location, review, and complaint UI"
+  },
+  {
+    "name": "role:m2-backend",
+    "color": "7C3AED",
+    "description": "Member 2: contracts, API, Supabase, auth, and deployment"
+  },
+  {
+    "name": "role:m3-vision",
+    "color": "059669",
+    "description": "Member 3: vision adapter, schema, fixtures, and evaluation"
+  },
+  {
+    "name": "role:m4-map-integration",
+    "color": "D97706",
+    "description": "Member 4: map, hotspots, integration QA, project, and demo"
+  },
+  {
+    "name": "type:workstream",
+    "color": "0E7490",
+    "description": "A member-owned group of tasks with acceptance criteria"
+  },
+  {
+    "name": "type:bug",
+    "color": "D73A4A",
+    "description": "A reproducible defect with expected and actual behavior"
+  },
+  {
+    "name": "status:blocked",
+    "color": "B60205",
+    "description": "Work cannot proceed until a named dependency is resolved"
+  },
+  {
+    "name": "priority:critical",
+    "color": "B60205",
+    "description": "Blocks the core demo or exposes private data"
+  },
+  {
+    "name": "scope:optional",
+    "color": "C5DEF5",
+    "description": "Hour 24-36 improvements after the required demo passes"
+  }
+]

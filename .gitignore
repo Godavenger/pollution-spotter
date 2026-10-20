@@ -1,0 +1,23 @@
+# Local Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Generated document previews
+planning/qa/
+
+# Local credentials and application build output
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+out/
+.vercel/
+*.log
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

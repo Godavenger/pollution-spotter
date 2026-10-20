@@ -1,0 +1,876 @@
+{
+  "before_roles": [
+    {
+      "kicker": "START HERE / SHARED AGREEMENT",
+      "title": "What your four-person team will ship",
+      "intro": "Build a working Pollution Spotter demonstration in 24 hours, with optional improvement time through hour 36. This pack supplies a plan and GitHub checklists; application paths below describe files the team will create. The application, remote repository and GitHub Issues have not been created by this planning pack.",
+      "blocks": [
+        {
+          "type": "text",
+          "heading": "Use the pack in this order",
+          "text": "Read these four shared pages together. Each member then follows their two role pages in task-ID order. Use the later reference pages when setting up GitHub, integrating, testing and rehearsing. H0 means the hackathon start; hour windows overlap across members and are not added together. Replace Member 1-4 and @member1-4 with your actual teammates."
+        },
+        {
+          "type": "table",
+          "heading": "Ownership and the main handoff",
+          "headers": [
+            "Owner",
+            "Builds",
+            "Hands to"
+          ],
+          "rows": [
+            [
+              "M1 / frontend",
+              "Photo, location, review, complaint",
+              "M2: inputs; M4: refresh signal"
+            ],
+            [
+              "M2 / backend",
+              "Contracts, auth, database, routes, deploy",
+              "Everyone: one stable interface"
+            ],
+            [
+              "M3 / vision",
+              "Adapter, prompt, fixtures, evaluation",
+              "M2: validated visual suggestions"
+            ],
+            [
+              "M4 / map + QA",
+              "Map, report density, tracker, demo",
+              "Everyone: integration evidence"
+            ]
+          ]
+        },
+        {
+          "type": "bullets",
+          "heading": "The required demonstration is complete when",
+          "items": [
+            "A phone on HTTPS captures/selects a photo and lets the user confirm or correct its location without requiring GPS permission.",
+            "A private draft shows visible-label suggestions or an honest fallback; the user explicitly confirms labels before publication.",
+            "Publishing updates that draft once. The map refreshes immediately and a second visible browser discovers it through 10-second polling.",
+            "Recent pollution report records form a clearly explained report-density hotspot. Real and labeled sample views keep separate counts.",
+            "The complaint can be edited locally, copied and downloaded; ownership, error recovery and the deployed phone journey are checked."
+          ]
+        },
+        {
+          "type": "callout",
+          "heading": "Keep the scope finishable",
+          "text": "Use existing vision capabilities; do not train a model. This is a controlled hackathon demo. Automatic authority contact, accounts UI, chatbot, payments and production-scale operations are outside the required build. Visual labels and hotspots do not establish water safety or verified environmental danger. GitHub Issue checkboxes record completion; PDF and repository Markdown boxes do not synchronize with them."
+        }
+      ]
+    },
+    {
+      "kicker": "SHARED DESIGN / DATA FLOW",
+      "title": "One application, one visible journey",
+      "intro": "Use one Next.js repository so the frontend and server share TypeScript contracts. Agree on this flow in M1-01, M2-02, M3-02 and M4-02 before building separate features.",
+      "blocks": [
+        {
+          "type": "table",
+          "heading": "Beginner-friendly stack",
+          "headers": [
+            "Layer",
+            "Choice",
+            "Purpose"
+          ],
+          "rows": [
+            [
+              "App + server",
+              "Next.js App Router, TypeScript, Tailwind",
+              "One project and shared types"
+            ],
+            [
+              "Data + identity",
+              "Supabase Postgres, private Storage, anonymous auth",
+              "Private drafts without signup screens"
+            ],
+            [
+              "Vision",
+              "@google/genai; available Flash-family vision model",
+              "Server-side image suggestions"
+            ],
+            [
+              "Map",
+              "React Leaflet, Leaflet, OpenStreetMap",
+              "Clickable map with attribution"
+            ],
+            [
+              "Hosting",
+              "Vercel; supported Node LTS",
+              "HTTPS deployment and phone access"
+            ]
+          ]
+        },
+        {
+          "type": "bullets",
+          "heading": "End-to-end pipeline",
+          "items": [
+            "1. Browser: obtain an anonymous Supabase session through M2's lib/supabase/browser.ts. Only the public URL/key belongs in this helper.",
+            "2. Input: select JPEG/PNG/WebP, reject sources over 8 MB, compress to at most 3 MB and 1600 px, then confirm a map pin.",
+            "3. Submit: POST multipart data with a retained client_request_id UUID and the anonymous JWT in the Authorization bearer header.",
+            "4. Reserve: the server verifies getUser(token), validates input and reserves one owner-scoped needs_review/unclear draft using the unique request key.",
+            "5. Store: decode with sharp, reject invalid or excessive images, strip metadata and save a normalized private image. Publication requires image_path to be ready.",
+            "6. Analyze: the first request invokes M3's adapter within a 12-second deadline. Valid output becomes draft/vision; failures retain manual_fallback and unclear.",
+            "7. Review: show the image, evidence and source. The owner edits labels/location as needed and explicitly confirms before publishing.",
+            "8. Publish: PATCH updates the same row and generates a safe complaint. Late AI writes cannot overwrite published, reviewed fields.",
+            "9. Display: GET exposes only published safe fields and signed photo URLs. Refresh the map, count report density, and offer editable complaint copy/download."
+          ]
+        },
+        {
+          "type": "callout",
+          "heading": "Make the boundaries visible",
+          "text": "M1 mounts M4's map through a client-only wrapper with SSR disabled. Gemini and service-role clients stay server-only. Every image result needs human confirmation; mock output forces the sample view. The map uses polling, not Supabase Realtime. OpenStreetMap attribution remains visible."
+        }
+      ]
+    },
+    {
+      "kicker": "SHARED CONTRACT / FREEZE AT H2",
+      "title": "Requests, records and retry behavior",
+      "intro": "M2 owns lib/contracts.ts and database/schema.sql. Use the same field names and validation on every branch. Success envelopes are {report} for POST/PATCH and {reports} for GET; errors use {error: {code, message, retryable}}.",
+      "blocks": [
+        {
+          "type": "table",
+          "heading": "API contract",
+          "headers": [
+            "Route",
+            "Input",
+            "Result"
+          ],
+          "rows": [
+            [
+              "POST /api/reports",
+              "Multipart: image, latitude, longitude, client_request_id; optional note",
+              "Owner-only draft, source and review state"
+            ],
+            [
+              "PATCH /api/reports/{id}",
+              "JSON: action=publish, labels, latitude, longitude",
+              "Same report ID, now published; safe complaint"
+            ],
+            [
+              "GET /api/reports",
+              "Public read; no write token",
+              "Published safe fields and signed image URLs"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "heading": "Input and label rules",
+          "text": "Writes require Authorization: Bearer <anonymous-session JWT>. Verify the token and owner on the server. Validate finite latitude [-90,90], longitude [-180,180], UUIDs and note length <=500. Ignore client owner_id, analysis_source and is_demo. Labels are algal_bloom, oil_sheen, garbage, no_visible_pollution or unclear. Pollution labels may co-occur; neutral labels must be exclusive. Require a nonempty, unique label set."
+        },
+        {
+          "type": "table",
+          "heading": "Report record",
+          "headers": [
+            "Fields",
+            "Rule"
+          ],
+          "rows": [
+            [
+              "id; owner_id; client_request_id",
+              "UUIDs; UNIQUE(owner_id, client_request_id)"
+            ],
+            [
+              "created_at; published_at",
+              "UTC timestamptz; published_at initially null"
+            ],
+            [
+              "latitude; longitude; image_path",
+              "Coordinates; private path null until upload ready"
+            ],
+            [
+              "labels; evidence; note",
+              "Label array; evidence <=240 chars; private optional note"
+            ],
+            [
+              "status; analysis_source",
+              "draft|needs_review|published; vision|manual_fallback|mock"
+            ],
+            [
+              "complaint_text; is_demo",
+              "Safe generated text; false except server-controlled samples"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "heading": "Exact public field allowlist",
+          "text": "id, created_at, published_at, latitude, longitude, labels,\nevidence, analysis_source, is_demo, image_url, complaint_text"
+        },
+        {
+          "type": "callout",
+          "heading": "Idempotency is part of the core flow",
+          "text": "Keep the same UUID and input values on retry. Reserve needs_review/unclear first. A duplicate reuses the row; if needed, resume normalized upload at the same deterministic object key. Only the reservation-winning request may invoke AI; duplicates never start another model call. Return the current reviewable draft once its image exists. Otherwise return an actionable retry state. Publish requires a stored image; repeated publish preserves the ID and original published_at. AI updates must exclude published rows. In mock mode, reserve is_demo=true immediately and preserve it on every write, including an early retry/publication."
+        }
+      ]
+    },
+    {
+      "kicker": "TEAM CLOCK / GATES BEFORE POLISH",
+      "title": "The first 24 hours, then optional depth",
+      "intro": "All 48 role tasks belong to the required 24-hour plan. Work within a window can overlap between members. At each gate, demonstrate the actual path on the shared branch and record evidence instead of reporting percentage complete.",
+      "blocks": [
+        {
+          "type": "table",
+          "heading": "Required delivery schedule",
+          "headers": [
+            "Window",
+            "Parallel work",
+            "Exit evidence"
+          ],
+          "rows": [
+            [
+              "H0-2",
+              "M2 scaffolds/deploys; M3 model smoke test; M1/M4 freeze interfaces",
+              "All can run; phone URL; exact model/mode; contracts"
+            ],
+            [
+              "H2-6",
+              "M1 input; M2 draft/store; M3 adapter/fixtures; M4 map",
+              "H6: fixture-driven draft/review/map/complaint preview"
+            ],
+            [
+              "H6-12",
+              "Connect live vision, human review, publish, map and complaint",
+              "H12: full live deployed journey; document any blocked gate"
+            ],
+            [
+              "H12-15",
+              "Ownership, retries, edge cases and 20-image evaluation",
+              "Recorded failures, passing checks, assigned blockers"
+            ],
+            [
+              "H15-18",
+              "Fix defects; improve phone layout; prepare sample seeds",
+              "Stable sample separation and repeatable recovery"
+            ],
+            [
+              "H18-22",
+              "Phone + second-browser test; rehearse all four speakers",
+              "Core journey twice; timed demo; backup recording"
+            ],
+            [
+              "H22-24",
+              "Freeze, verify release, close evidence-backed tasks",
+              "One final URL/commit; honest three-minute demo"
+            ]
+          ]
+        },
+        {
+          "type": "bullets",
+          "heading": "Coordination rules that protect the deadline",
+          "items": [
+            "At H0, map names to M1-M4, choose one demo area and agree the deadline. Each member opens their role Issue and starts task 01.",
+            "Every two hours, spend five minutes on: what now works, what blocks the next handoff, and who pairs to resolve it. Escalate a blocker after 20 minutes.",
+            "M2 coordinates shared dependencies, lockfile, schema and environment changes. Use small branches and reviewed pull requests; keep the deployed main branch usable.",
+            "If H6 or H12 fails, pause polish and pair across the failing interface. Cut animations, extra dashboards and elaborate styling before review, ownership or sample-label requirements."
+          ]
+        },
+        {
+          "type": "table",
+          "heading": "Optional H24-36, only after required acceptance",
+          "headers": [
+            "Window",
+            "Choose a bounded improvement"
+          ],
+          "rows": [
+            [
+              "H24-28",
+              "M3 expands unseen evaluation; M1 improves the clearest usability issue"
+            ],
+            [
+              "H28-32",
+              "M2 improves diagnostics/recovery; M4 clarifies hotspot boundaries"
+            ],
+            [
+              "H32-36",
+              "Retest changed paths, update evidence and rehearse the final release"
+            ]
+          ]
+        },
+        {
+          "type": "callout",
+          "heading": "A clear contingency is acceptable; concealed simulation is not",
+          "text": "H6 is a fixture-driven contract preview, not a completed backend. The publish route is built at H8-10. H12 requires the full live journey. If model access blocks it, record the live gate as unmet and demonstrate manual review or labeled mock/sample scenes as an explicit contingency."
+        }
+      ]
+    }
+  ],
+  "after_roles": [
+    {
+      "kicker": "GITHUB / CHECK WORK AS IT FINISHES",
+      "title": "Turn the plan into four trackable Issues",
+      "intro": "M4 owns M4-01 and the tracker. The supplied files are ready to upload into your future repository; this pack has not published them or created remote Issues. GitHub Issues are the team's completion record.",
+      "blocks": [
+        {
+          "type": "bullets",
+          "heading": "Set up once",
+          "items": [
+            "1. Create one GitHub repository, invite the four teammates with appropriate write access, and commit the scaffold plus the planning files. M2 manages the shared app foundation.",
+            "2. Follow docs/GITHUB_SETUP.md. Create four Issues by copying github-issues/member-1.md through member-4.md into their bodies; replace placeholder handles and assign each owner.",
+            "3. Optionally add the four Issues to a GitHub Project with Todo, In progress, Blocked and Done statuses; add Review only if useful. Use scope:optional for later enhancements.",
+            "4. Link GITHUB_TRACKER.md and PIPELINE.md from README.md. Keep the Issue URLs in the tracker so everyone can find the live checklists."
+          ]
+        },
+        {
+          "type": "code",
+          "heading": "A task body preserves the stable IDs",
+          "text": "- [ ] M1-05 Submit a private draft reliably\n  Done: one private draft; retries keep the same ID.\n  Evidence: PR URL + test result or short recording.\n- [ ] M1-06 Build mandatory human review"
+        },
+        {
+          "type": "bullets",
+          "heading": "Repeat for each task",
+          "items": [
+            "Move your Issue to In progress and name the active task in a comment. Use a small branch such as m1/report-upload; pull the latest main before starting.",
+            "Implement only the owned paths, run the relevant check and open a pull request referencing the task ID. Use 'Refs #issue' when more tasks remain in the role Issue.",
+            "Ask the named reviewer to verify the task's done criterion. Attach a screenshot, command result or short recording that demonstrates the actual behavior.",
+            "After review and merge, tick that task in the Issue body. Move the role Issue to Done only when all 12 required tasks pass. Leave unfinished work visible.",
+            "For blockers, add a comment naming the dependency, owner and next action; link the blocking Issue. Update status after the blocker is resolved."
+          ]
+        },
+        {
+          "type": "callout",
+          "heading": "What checking a box actually changes",
+          "text": "Authorized teammates can toggle task-list checkboxes in GitHub Issue bodies/comments. Checkboxes inside repository Markdown require editing and committing the file. Neither synchronizes with the PDF or with another checklist. Avoid 'Closes #issue' on an early pull request for a role Issue containing unfinished tasks. Never place keys, tokens or raw private photos in evidence."
+        }
+      ]
+    },
+    {
+      "kicker": "VISION / SUGGEST, VALIDATE, CONFIRM",
+      "title": "A conservative prompt and honest evidence",
+      "intro": "M3 follows M3-01 through M3-12. Choose a currently available Flash-family vision model in the team's Google AI Studio account, prove it with a real image at H1, and freeze that exact GEMINI_MODEL. No model ID or quota is assumed to remain available.",
+      "blocks": [
+        {
+          "type": "code",
+          "heading": "Starter prompt for lib/vision/prompt.ts",
+          "text": "Inspect this pond/canal photo for visible surface cues only.\nChoose one or more pollution labels when visibly supported:\nalgal_bloom, oil_sheen, garbage.\nUse no_visible_pollution only when none is visibly supported.\nUse unclear if image quality or ambiguity prevents a judgment.\nNeutral labels must appear alone. Never invent an extra label.\nReturn JSON: labels (array), evidence (string), review_needed (boolean).\nEvidence must be <=240 characters and describe visible features.\nDo not claim chemistry, toxins, water safety or confidence percentages.\nSet review_needed=true for ambiguity or uncertain visual evidence."
+        },
+        {
+          "type": "text",
+          "heading": "Adapter boundary and validation",
+          "text": "M2 imports server-only analyzeImage({bytes, mimeType}): Promise<VisionResult>. The result contains labels, evidence and review_needed; source metadata is set by the server outside the model result. Use structured output and validate types, allowed unique labels, neutral exclusivity, nonempty arrays, evidence length and boolean values. Invalid, blocked, empty or timed-out results trigger truthful manual_fallback/unclear. review_needed=false never bypasses the user's confirmation step."
+        },
+        {
+          "type": "table",
+          "heading": "Small evaluation plan",
+          "headers": [
+            "Step",
+            "Evidence to save"
+          ],
+          "rows": [
+            [
+              "Prepare 20 images",
+              "Four primary examples per label; licensed/consented provenance; mixed/ambiguous cases"
+            ],
+            [
+              "Annotate together",
+              "Two teammates agree expected visible-label sets; retain uncertainty notes"
+            ],
+            [
+              "Run frozen prompt",
+              "Expected/predicted sets, source, validity, latency and timeout/error in results.csv"
+            ],
+            [
+              "Count mistakes",
+              "Exact set matches /20; per-label misses and false positives with denominators"
+            ],
+            [
+              "Revise once",
+              "Preserve baseline; rerun affected cases plus five new unseen checks"
+            ]
+          ]
+        },
+        {
+          "type": "bullets",
+          "heading": "Make the limitations measurable",
+          "items": [
+            "Include glare that resembles oil, reflections/vegetation, blur, ordinary debris and mixed visible pollution. Visible resemblance does not verify its chemical cause.",
+            "Count provider failures and malformed outputs separately. Manual/mock results never count as successful AI predictions; failed cases remain in the 20-case overall denominator.",
+            "Save prompt version, exact model ID and outcomes in evaluation/README.md. Present results as a small demonstration sample, without a broad accuracy claim."
+          ]
+        },
+        {
+          "type": "callout",
+          "text": "VISION_MODE=mock is deliberate demonstration mode: preserve analysis_source=mock and force is_demo=true on publication. Provider failure in live mode is manual fallback, never a fabricated live prediction. Keep keys, image bytes and base64 out of logs."
+        }
+      ]
+    },
+    {
+      "kicker": "MAP + COMPLAINT / EXPLAIN THE OUTPUT",
+      "title": "Count reports, then draft a careful complaint",
+      "intro": "M4 owns lib/hotspots.ts (M4-02, M4-06); M2 owns the safe complaint template (M2-07); M1 owns local editing and export (M1-08). Both outputs use the owner's reviewed labels.",
+      "blocks": [
+        {
+          "type": "text",
+          "heading": "Freeze one approximate local grid",
+          "text": "At H0 choose one demo area and record its center latitude as phi0 in degrees. Keep phi0 fixed for all records and both layers; it is a projection reference, never a substitute for the user's location. Use this equirectangular approximation for a small local area away from the poles/dateline. Cell boundaries are approximate and can split nearby reports."
+        },
+        {
+          "type": "code",
+          "heading": "Exact formula and eligibility",
+          "text": "R = 6371000 meters; s = 100 meters\nx = R * (longitude * pi / 180) * cos(phi0 * pi / 180)\ny = R * (latitude * pi / 180)\ncell = (floor(x / s), floor(y / s))\nwindow: now_UTC - 24 hours <= published_at <= now_UTC\npollution = {algal_bloom, oil_sheen, garbage}\neligible: published AND labels intersect pollution\nhotspot: at least 3 distinct report IDs in the same layer/cell"
+        },
+        {
+          "type": "bullets",
+          "heading": "Display rules",
+          "items": [
+            "Count a multilabel report once. Exclude unclear/no_visible_pollution from hotspots; neutral published reports may keep neutral markers. Separate is_demo=true and false before counting.",
+            "Label the result 'Report density: 3 reports in about 100 m, last 24 h.' Distinct report IDs do not prove distinct observers or independent environmental events.",
+            "Default to the real view; badge sample markers/popups/counts. Poll every 10 seconds while visible, refresh immediately after publish, and show last successful update or stale-data errors.",
+            "For the controlled demo, return at most the latest 200 published reports from the last 24 hours. At that cap, label the limited dataset; density covers returned records and can undercount."
+          ]
+        },
+        {
+          "type": "code",
+          "heading": "Safe editable complaint template",
+          "text": "Subject: Request to inspect a reported water-surface concern\nLocation: [reviewed latitude, longitude]\nReported at: [published_at in UTC]\nObserved appearance: [reviewed plain-language pollution labels]\nPlease inspect this location and advise on appropriate next steps.\nThis photo report is a visual observation, not a laboratory finding."
+        },
+        {
+          "type": "callout",
+          "text": "For unclear or no_visible_pollution, use neutral 'Request for inspection / observation' wording and do not assert a pollutant. Generate public text only from reviewed safe fields; omit private notes/contact details. Local edits need not be saved publicly. Copy/download only: the user verifies the authority and sends the complaint separately."
+        }
+      ]
+    },
+    {
+      "kicker": "INTEGRATION / PROVE THE IMPORTANT BOUNDARIES",
+      "title": "A practical acceptance and QA matrix",
+      "intro": "M4 coordinates M4-08 through M4-10 with M2-09 and M3-07. Put useful flow checks in tests/e2e/*, vision boundary checks in tests/vision/*, and concise manual evidence in docs/demo.md. Check behavior and failure recovery, not styling details.",
+      "blocks": [
+        {
+          "type": "table",
+          "heading": "Required checks before the release",
+          "headers": [
+            "Case",
+            "Expected result",
+            "Lead"
+          ],
+          "rows": [
+            [
+              "Real phone photo",
+              "Preview, valid pin, draft, reviewed publish, map and complaint",
+              "M1 + M4"
+            ],
+            [
+              "GPS denied",
+              "Manual pin still completes the flow",
+              "M1"
+            ],
+            [
+              "Corrupt / unsupported / oversized image",
+              "Actionable rejection; no false success",
+              "M2"
+            ],
+            [
+              "Timeout / malformed AI JSON",
+              "unclear + manual_fallback; review remains possible",
+              "M3 + M2"
+            ],
+            [
+              "Retry same submission",
+              "Same owner/request key returns one report; no second AI call",
+              "M2"
+            ],
+            [
+              "Publish twice / late AI",
+              "Same row and first published_at; reviewed fields unchanged",
+              "M2"
+            ],
+            [
+              "Owner A vs owner B / no token",
+              "Foreign draft/write denied; unauthenticated writes fail",
+              "M2 + M4"
+            ],
+            [
+              "Read public JSON / private storage",
+              "No drafts, owner IDs, raw notes or raw image_path; direct anon access denied",
+              "M2 + M4"
+            ],
+            [
+              "Hotspot threshold + boundary",
+              "2 records do not qualify; 3 do; old/future/neutral excluded",
+              "M4"
+            ],
+            [
+              "Multilabel + mock samples",
+              "One count per ID; real/sample never combined",
+              "M4"
+            ],
+            [
+              "Polling / offline / photo expiry",
+              "Refresh/cleanup correct; stale state shown; signed URL renewed",
+              "M4"
+            ],
+            [
+              "Complaint + mobile controls",
+              "Copy/download works; safe wording; keyboard/phone usable",
+              "M1"
+            ]
+          ]
+        },
+        {
+          "type": "bullets",
+          "heading": "Run the tests at the right gates",
+          "items": [
+            "H6: M1-05, M2-05, M3-06 and M4-06 use fixtures for a draft/review/map/complaint contract preview. Resolve interface mismatches; full backend publication is scheduled later.",
+            "H12: complete the full live deployed real-image journey. If access blocks live vision, record that gate as unmet and disclose the fallback demonstration.",
+            "H18-22: run the core flow twice on HTTPS with a phone and a second visible browser. Check the final deployment, not only localhost.",
+            "Before merging: run the changed area's meaningful tests plus the repository build/type checks. Rerun failing or changed paths after fixes."
+          ]
+        },
+        {
+          "type": "callout",
+          "heading": "Attach evidence to the task",
+          "text": "Record task ID, commit/deployed URL, input scenario, expected versus actual behavior, and a pass/fail result. Link a screenshot or short recording when useful. Keep tokens, service credentials and private input out of evidence. A test passes only when its expected behavior is observed; an untested box stays open."
+        }
+      ]
+    },
+    {
+      "kicker": "SETUP / ACCOUNTS, ENVIRONMENT, COST",
+      "title": "Make external dependencies work at hour one",
+      "intro": "M2 owns project setup (M2-01 through M2-03); M3 owns model access (M3-01). Use team-accessible accounts and record who can recover each service. Verify current limits in the actual accounts before committing the demo to them. Copyable commands and scaffold-merging steps: [docs/APP_SETUP.md](docs/APP_SETUP.md). Start in a new sibling folder; preserve the clone's planning files and .git.",
+      "blocks": [
+        {
+          "type": "table",
+          "heading": "Setup order",
+          "headers": [
+            "Step",
+            "Concrete action",
+            "Owner"
+          ],
+          "rows": [
+            [
+              "1 / workstation",
+              "Install supported Node LTS/Git; scaffold Next.js with TS, Tailwind, App Router",
+              "M2"
+            ],
+            [
+              "2 / packages",
+              "Coordinate @supabase/supabase-js, @google/genai, sharp, zod, react-leaflet, leaflet",
+              "M2"
+            ],
+            [
+              "3 / repository",
+              "Commit one lockfile; all clone, install and run the same starter",
+              "All"
+            ],
+            [
+              "4 / Supabase",
+              "Create project; enable anonymous auth; apply schema/RLS; private report-photos bucket",
+              "M2"
+            ],
+            [
+              "5 / vision",
+              "Use Google AI Studio account; run one server-side image/model request",
+              "M3"
+            ],
+            [
+              "6 / Vercel",
+              "Connect repository; set environments; deploy starter and open HTTPS on phone",
+              "M2 + M4"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "heading": "Names-only .env.example; real values stay private",
+          "text": "NEXT_PUBLIC_SUPABASE_URL=\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=\nSUPABASE_SERVICE_ROLE_KEY=\nGEMINI_API_KEY=\nGEMINI_MODEL=\nVISION_MODE=live"
+        },
+        {
+          "type": "text",
+          "heading": "Who reads which values",
+          "text": "M2 creates lib/supabase/browser.ts using only the first two public values; a project browser publishable key or supported legacy anon key can fill the public-key setting. Server-only clients read service-role and Gemini secrets. Put real local values in ignored .env.local and hosting values in Vercel settings. Keep .env.example empty of credentials. Fix the map reference latitude in shared configuration and record it in docs/demo.md."
+        },
+        {
+          "type": "bullets",
+          "heading": "Hour-one access and cost gate",
+          "items": [
+            "Save the exact passing model ID, SDK version, request latency and any quota restriction. Confirm image input works; a text-only model response is insufficient.",
+            "Check account billing/quota and hosting request/duration limits. Agree a small team spending ceiling and one owner; do not assume a free tier or automatically upgrade a plan.",
+            "Budget approximately 20 baseline cases, focused reruns, five unseen checks and rehearsals; watch actual usage. Compress images and avoid repeated automatic provider retries.",
+            "If live access is unavailable, record it at H1 and continue integration with explicitly labeled mocks/manual fallback while M3 investigates access."
+          ]
+        },
+        {
+          "type": "callout",
+          "text": "M2 owns dependency and environment changes to avoid conflicting lockfiles. Do not put any service-role or Gemini key in NEXT_PUBLIC variables, browser code, screenshots, Issue comments or a committed environment file."
+        }
+      ]
+    },
+    {
+      "kicker": "DEPLOYMENT / PRIVATE DRAFTS, PUBLIC REPORTS",
+      "title": "Ship one reliable HTTPS demonstration",
+      "intro": "M2 leads M2-10 through M2-12 with M4's verification. The deployment must preserve the same ownership, source labels and retry behavior as local development. Keep the final judging URL and deployed commit together in docs/demo.md.",
+      "blocks": [
+        {
+          "type": "bullets",
+          "heading": "Deployment sequence",
+          "items": [
+            "1. Merge reviewed changes, install from the committed lockfile, and run the repository's build/type checks plus relevant tests. Resolve failures before declaring the release ready.",
+            "2. Apply database/schema.sql to the intended Supabase project; verify RLS and the private report-photos bucket. Enable anonymous sign-in and confirm the deployed client can obtain a session.",
+            "3. Set the same environment names on Vercel for the intended deployment. Set the tested GEMINI_MODEL and deliberate VISION_MODE, then redeploy after changes.",
+            "4. Run upload/model routes in the Node runtime for sharp and Buffer. Allow storage work plus the 12-second model deadline within the host's verified execution limit.",
+            "5. Test compressed images under the host request-body limit; keep the client image <=3 MB with room for multipart overhead. The server still rejects invalid images, >8 MB inputs and >40 megapixels.",
+            "6. On the final HTTPS URL, complete the phone journey twice and verify immediate/polled map updates from a second browser. Save the final commit and release evidence."
+          ]
+        },
+        {
+          "type": "table",
+          "heading": "Security and publication boundaries",
+          "headers": [
+            "Boundary",
+            "Required behavior"
+          ],
+          "rows": [
+            [
+              "Write identity",
+              "getUser(token); derive owner server-side; reject foreign drafts"
+            ],
+            [
+              "Direct database/storage",
+              "RLS denies public/anon access; server clients remain secret"
+            ],
+            [
+              "Public reports",
+              "Explicit allowlist; published only; no raw notes, owner IDs or separate image_path field"
+            ],
+            [
+              "Public photos",
+              "Private bucket; signed URLs expose safe reports/{reportId}.jpg path and temporary read"
+            ],
+            [
+              "Samples",
+              "Server-controlled samples; mock mode reserves is_demo=true immediately and preserves it"
+            ],
+            [
+              "Logs",
+              "Safe error codes/latency; no keys, JWTs, image bytes or base64"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "heading": "Keep the public view current",
+          "text": "Disable unintended caching so publication appears immediately. GET returns the latest 200 published reports within 24 hours, ordered by published_at descending; label the cap if reached. Signed URLs reveal the bucket and safe object path, never an owner ID; use reports/{reportId}.jpg and refresh URLs when needed. Anonymous identity belongs to the browser session; another browser or a lost session does not automatically recover its drafts."
+        },
+        {
+          "type": "callout",
+          "text": "Publication makes the approved photo and location viewable through the application. Explain that at review. This is a controlled hackathon service; production moderation, abuse prevention, recovery, deletion and operational monitoring remain future work."
+        }
+      ]
+    },
+    {
+      "kicker": "RECOVERY / KEEP FAILURE STATES TRUTHFUL",
+      "title": "What to do when a dependency fails",
+      "intro": "M1 preserves understandable UI states, M2 preserves data correctness, M3 handles model boundaries, and M4 rehearses recovery. Do not change the demo's story to hide a failure; use a known alternate path and name it.",
+      "blocks": [
+        {
+          "type": "table",
+          "heading": "Recovery playbook",
+          "headers": [
+            "Failure",
+            "Required response",
+            "Owner"
+          ],
+          "rows": [
+            [
+              "Camera/format unsupported",
+              "Offer file selection; request JPEG/PNG/WebP; retain usable inputs",
+              "M1"
+            ],
+            [
+              "GPS denied/unavailable",
+              "Let the user tap/drag a map pin and confirm coordinates",
+              "M1 + M4"
+            ],
+            [
+              "Image invalid/too large",
+              "Explain rejection; allow replacement/compression; no successful draft message",
+              "M1 + M2"
+            ],
+            [
+              "DB/storage fails after reservation",
+              "Return retryable error; same UUID resumes same row/object; block publish without image",
+              "M2"
+            ],
+            [
+              "Browser request times out",
+              "Retry same UUID and values; use existing row; never launch a duplicate AI call",
+              "M1 + M2"
+            ],
+            [
+              "Model quota/timeout/invalid output",
+              "needs_review + unclear + manual_fallback; user reviews labels before publish",
+              "M3 + M2"
+            ],
+            [
+              "Late model result",
+              "Guard update against published rows; preserve user-reviewed fields",
+              "M2"
+            ],
+            [
+              "Session missing/expired",
+              "Refresh existing session if possible; explain lost ownership before starting a new report",
+              "M2 + M1"
+            ],
+            [
+              "Map network/tiles fail",
+              "Show error/last update; retain stale reports with a label; use recording if necessary",
+              "M4"
+            ],
+            [
+              "Signed photo URL expires",
+              "Refetch reports for fresh URLs; show a placeholder while recovering",
+              "M4 + M2"
+            ],
+            [
+              "Live model unavailable at judging",
+              "Use disclosed manual review or deliberate mock/sample mode; disclose active source",
+              "M3 + M4"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "heading": "A ready draft is different from a pending reservation",
+          "text": "A reserved row may have image_path=null while upload is pending. It must not become a public report or be shown as successfully ready for review. A retry may safely resume normalized storage at the same deterministic key; only the request that won the reservation invokes the model. Once the image exists, a duplicate can return the current draft without another provider call. If the first request never completes analysis, manual review is still a truthful path."
+        },
+        {
+          "type": "callout",
+          "heading": "Prepare the switch before the demo",
+          "text": "Record the exact sample seed/reset command and deployment-mode change steps in docs/demo.md. Changing VISION_MODE may require redeployment; it is not a browser toggle. Keep a short recording and screenshots locally available. On failure, say which part is unavailable and demonstrate only what the current path actually does."
+        }
+      ]
+    },
+    {
+      "kicker": "JUDGING / EXACT THREE-MINUTE RUN",
+      "title": "Make the map-fill moment clear and credible",
+      "intro": "M4 owns the script in docs/demo.md (M4-11); all four members rehearse it. Prepare the phone, final HTTPS URL, second browser, a consented photo, labeled sample fixtures and a local backup recording before the clock starts.",
+      "blocks": [
+        {
+          "type": "table",
+          "heading": "180-second script",
+          "headers": [
+            "Time",
+            "Speaker/action",
+            "Show or say"
+          ],
+          "rows": [
+            [
+              "0:00-0:20",
+              "M4 / introduce",
+              "A resident sees a pond/canal concern. We turn a photo into a reviewed report, a map and a complaint draft."
+            ],
+            [
+              "0:20-0:45",
+              "M1 / photo + pin",
+              "Capture/select the photo; confirm location. Show that GPS can be corrected or replaced with a manual pin."
+            ],
+            [
+              "0:45-1:10",
+              "M3 speaks; M1 reviews",
+              "Show source/evidence, edit if needed, then confirm. Explain that the model suggests visible appearance and does not test water safety."
+            ],
+            [
+              "1:10-1:30",
+              "M1 / publish",
+              "Publish once. Show immediate map refresh and the second browser updating through the visible 10-second polling cycle."
+            ],
+            [
+              "1:30-1:55",
+              "M4 / map fill",
+              "Switch to clearly labeled Sample demo. Start with two staged records; M2 adds the third via the prepared seed step; show the hotspot."
+            ],
+            [
+              "1:55-2:20",
+              "M1 / complaint",
+              "Open the generated text, make one local edit and copy/download. The user verifies the recipient and sends it separately."
+            ],
+            [
+              "2:20-2:40",
+              "M2 / engineering",
+              "One Next.js app, private drafts, owner-checked publication, idempotent retries and separate sample data. Show the deployed URL."
+            ],
+            [
+              "2:40-3:00",
+              "M3 + M4 / evidence",
+              "Give recorded sample-evaluation counts, one known confusion and the next improvement. Explain that hotspots measure report density."
+            ]
+          ]
+        },
+        {
+          "type": "bullets",
+          "heading": "Rehearse these mechanics",
+          "items": [
+            "Freeze a three-record sample group in one grid cell within 24 hours. Use licensed/consented photos; mark each is_demo=true and keep real/sample counts separate.",
+            "M2 documents and runs the local-only baseline/third-record seed steps; the browser cannot insert arbitrary demo reports. Allow one polling cycle for the reveal.",
+            "Use your actual evaluation results, never placeholder accuracy. If live analysis falls back, name manual fallback and still demonstrate the human-review step."
+          ]
+        },
+        {
+          "type": "callout",
+          "heading": "Backup without pretending it is live",
+          "text": "If a step stalls, state the failing dependency and switch to the rehearsed manual path or a clearly labeled recording. Continue through the remaining script using screenshots/video; identify recorded and sample content. Keep the backup locally available so network loss does not stop the explanation."
+        }
+      ]
+    },
+    {
+      "kicker": "RELEASE / DONE MEANS DEMONSTRATED",
+      "title": "Final readiness and each member's next step",
+      "intro": "At H22-24, each owner reviews their role Issue with the named reviewer. M4 checks shared acceptance, M2 records the deployed commit, and the team stops feature work. Optional improvements remain separate from required completion.",
+      "blocks": [
+        {
+          "type": "bullets",
+          "heading": "Final readiness checklist",
+          "items": [
+            "[ ] M1-11 / M2-11: the final HTTPS phone journey passes twice, including a real photo, corrected pin, confirmed labels, publish and complaint export.",
+            "[ ] M2-09 / M3-07: ownership, private storage, bad inputs, retries, provider failure and late-AI protections have evidence.",
+            "[ ] M3-09 / M3-12: exact model and prompt version are recorded; sample evaluation includes denominators and failures; limitations match the presentation.",
+            "[ ] M4-06 / M4-07: hotspot formula and trailing-24-hour window are correct; sample/real separation is visible; counts make no independence or danger claim.",
+            "[ ] M4-11: all four members rehearse the three-minute script, the third-sample reveal and a disclosed backup switch.",
+            "[ ] M1-12 / M2-12 / M3-12 / M4-12: reviewed required tasks are checked with evidence; final URL, commit, seed/recovery steps and backups are shared."
+          ]
+        },
+        {
+          "type": "table",
+          "heading": "Beginner learning path: learn only the next needed skill",
+          "headers": [
+            "Member",
+            "Learn in this order",
+            "Official starting point"
+          ],
+          "rows": [
+            [
+              "M1",
+              "React state -> file inputs -> fetch/FormData -> review UX",
+              "nextjs.org/learn"
+            ],
+            [
+              "M2",
+              "Route handlers -> Supabase auth/storage -> RLS -> deployment",
+              "supabase.com/docs; nextjs.org/docs"
+            ],
+            [
+              "M3",
+              "Image request -> structured JSON -> validation -> evaluation",
+              "ai.google.dev/gemini-api/docs"
+            ],
+            [
+              "M4",
+              "Leaflet map -> coordinates/bins -> refresh -> integration checks",
+              "react-leaflet.js.org; docs.github.com"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "heading": "What to do immediately",
+          "text": "Each member opens task 01, names the output they will hand off, and starts within their owned paths. M2 creates the shared starter; M3 proves model access while M1 sketches the flow and M4 prepares tracking. Do not wait for the full app before testing interfaces: use the agreed sample responses at H6, then replace them with the real path and disclose the active source."
+        },
+        {
+          "type": "callout",
+          "heading": "After the hackathon",
+          "text": "Expand unseen visual evaluation, improve usability from observed failures, and validate complaint routing with intended users. Before opening a public service, design moderation, abuse controls, account recovery and data deletion. Reliable water-safety or pollutant claims require appropriate measurements and domain review beyond this visual-reporting prototype."
+        }
+      ]
+    }
+  ]
+}
