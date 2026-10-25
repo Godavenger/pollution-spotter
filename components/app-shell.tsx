@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Map, Plus, BookOpen, ArrowUpRight } from "lucide-react";
+import { LayoutGroup, m } from "framer-motion";
+import { MotionSystem, UI_EASE, useQuietMotion } from "@/components/ui/motion";
 
 const destinations = [
   { href: "/", label: "New report", icon: Plus },
@@ -11,7 +13,12 @@ const destinations = [
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  return <MotionSystem><Shell>{children}</Shell></MotionSystem>;
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const quiet = useQuietMotion();
   return <div className="app-shell">
     <a className="skip-link" href="#main">Skip to content</a>
     <aside className="sidebar">
@@ -22,9 +29,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </svg>
         <span>Pollution <br />Spotter<span className="brand-caption">A clearer picture of our water</span></span>
       </Link>
-      <nav aria-label="Main navigation">
-        {destinations.map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} className="nav-link"><Icon size={18} strokeWidth={1.7} /><span>{label}</span></Link>)}
-      </nav>
+      <LayoutGroup id="main-navigation"><nav aria-label="Main navigation">
+        {destinations.map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} className="nav-link">{pathname === href && <m.span className="nav-selection" layoutId="selection" initial={false} transition={{ duration: quiet ? 0 : .18, ease: UI_EASE }} aria-hidden="true" />}<Icon size={18} strokeWidth={1.7} /><span className="nav-label">{label}</span></Link>)}
+      </nav></LayoutGroup>
       <div className="sidebar-note">
         <p>Small observations.<br />A shared responsibility.</p>
         <span>Starting in Kolkata.<br />Open to reports everywhere.</span>

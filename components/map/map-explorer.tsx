@@ -1,13 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
+import { AnimatePresence } from "framer-motion";
 import { ArrowUpRight, MapPin, RefreshCw, X } from "lucide-react";
 import { z } from "zod";
 import { coordinatesSchema, labelsSchema, LABEL_NAMES, SOURCE_NAMES, type PublicReport } from "@/lib/contracts";
 import { formatCoordinates, formatPublishedDate } from "@/lib/complaint";
 import { SAMPLE_REPORT_NOTICE, SAMPLE_REPORTS } from "@/lib/sample-reports";
 import { ComplaintEditor } from "@/components/complaint/complaint-editor";
+import { PresencePanel } from "@/components/ui/motion";
 import "./map.css";
 
 const ReportMap = dynamic(() => import("./map-canvas").then((module) => module.ReportMapCanvas), {
@@ -35,6 +37,36 @@ type ReportState = {
   updatedAt: string | null;
 };
 
+function focusReportHeading(heading: HTMLHeadingElement | null) {
+  if (!heading || heading.closest("[inert]")) return;
+  const quiet = window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+    document.documentElement.dataset.input === "keyboard";
+  heading.focus({ preventScroll: true });
+  heading.scrollIntoView({ block: "nearest", behavior: quiet ? "instant" : "smooth" });
+}
+
+function SelectedReportDetail({ report, onClose, headingRef }: {
+  report: PublicReport;
+  onClose: () => void;
+  headingRef: RefObject<HTMLHeadingElement | null>;
+}) {
+  const headingId = useId();
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => focusReportHeading(headingRef.current));
+    return () => cancelAnimationFrame(frame);
+  }, [headingRef]);
+
+  return <section className="map-selected-report" aria-labelledby={headingId}>
+    <div className="map-selected-heading">
+      <h3 id={headingId} ref={headingRef} tabIndex={-1}>{report.is_demo ? "Sample report" : "Reviewed report"}</h3>
+      <button type="button" onClick={onClose} aria-label="Close report details"><X size={18} aria-hidden /></button>
+    </div>
+    <p>{report.evidence}</p>
+    <p className="map-detail-coordinates">{formatCoordinates(report.latitude, report.longitude)}</p>
+    <ComplaintEditor report={report} />
+  </section>;
+}
+
 export function MapExplorer({ refreshKey, onReportSelect }: {
   refreshKey: number;
   onReportSelect?: (report: PublicReport) => void;
@@ -43,6 +75,9 @@ export function MapExplorer({ refreshKey, onReportSelect }: {
   const [reload, setReload] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const reportButtons = useRef(new Map<string, HTMLButtonElement>());
+  const restoreFocusId = useRef<string | null>(null);
+  const detailHeading = useRef<HTMLHeadingElement>(null);
   const [state, setState] = useState<ReportState>({ view: "real", reports: [], loading: true, error: null, updatedAt: null });
 
   useEffect(() => {
@@ -96,6 +131,7 @@ export function MapExplorer({ refreshKey, onReportSelect }: {
 
   function changeView(nextView: View) {
     if (nextView === view) return;
+    restoreFocusId.current = null;
     setView(nextView);
     setSelectedId(null);
     setShowAll(false);
@@ -108,13 +144,28 @@ export function MapExplorer({ refreshKey, onReportSelect }: {
   }
 
   function selectReport(report: PublicReport) {
+    restoreFocusId.current = null;
+    // A map marker may refer to a row outside the collapsed list. Keep its return target available.
+    if (state.reports.findIndex((item) => item.id === report.id) >= 4) setShowAll(true);
+    if (selectedId === report.id && !onReportSelect) focusReportHeading(detailHeading.current);
     setSelectedId(report.id);
     onReportSelect?.(report);
   }
 
+  function closeDetail() {
+    restoreFocusId.current = selectedId;
+    setSelectedId(null);
+  }
+
+  function restoreReportFocus() {
+    const id = restoreFocusId.current;
+    restoreFocusId.current = null;
+    if (id) reportButtons.current.get(id)?.focus();
+  }
+
   const selectedReport = state.reports.find((report) => report.id === selectedId);
   const visibleReports = showAll ? state.reports : state.reports.slice(0, 4);
-  const scopeLabel = view === "samples" ? "sample reports" : "published reports";
+  const scopeLabel = `${view === "samples" ? "sample" : "published"} report${state.reports.length === 1 ? "" : "s"}`;
 
   return (
     <section className="map-explorer" aria-labelledby="map-heading">
@@ -126,7 +177,7 @@ export function MapExplorer({ refreshKey, onReportSelect }: {
         <MapPin size={20} strokeWidth={1.5} aria-hidden />
       </div>
       <div className="map-toolbar">
-        <div className="map-view-switch" role="group" aria-label="Report view">
+        <div className="map-view-switch" data-view={view} role="group" aria-label="Report view">
           <button type="button" aria-pressed={view === "real"} onClick={() => changeView("real")}>Public reports</button>
           <button type="button" aria-pressed={view === "samples"} onClick={() => changeView("samples")}>Samples</button>
         </div>
@@ -137,6 +188,13 @@ export function MapExplorer({ refreshKey, onReportSelect }: {
       </div>
       {view === "samples" && <p className="map-sample-notice">{SAMPLE_REPORT_NOTICE}</p>}
       <ReportMap reports={state.reports} selectedId={selectedId} onSelect={selectReport} />
+      <AnimatePresence initial={false} mode="wait" onExitComplete={restoreReportFocus}>
+        {selectedReport && !onReportSelect && (
+          <PresencePanel key={selectedReport.id} focusHeading={false}>
+            <SelectedReportDetail report={selectedReport} onClose={closeDetail} headingRef={detailHeading} />
+          </PresencePanel>
+        )}
+      </AnimatePresence>
       <div className="map-list-heading">
         <h3>{state.loading && !state.reports.length ? "Loading observations…" : state.error && !state.reports.length ? "Report list unavailable" : `${state.reports.length} ${scopeLabel}`}</h3>
         {state.updatedAt && <span>Updated {new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" }).format(new Date(state.updatedAt))}</span>}
@@ -159,7 +217,10 @@ export function MapExplorer({ refreshKey, onReportSelect }: {
         <ul className="map-report-list" aria-label={`${scopeLabel} with coordinates`}>
           {visibleReports.map((report) => (
             <li key={report.id}>
-              <button className="map-report-row" type="button" aria-pressed={report.id === selectedId} onClick={() => selectReport(report)}>
+              <button className="map-report-row" type="button" aria-pressed={report.id === selectedId} onClick={() => selectReport(report)} ref={(element) => {
+                if (element) reportButtons.current.set(report.id, element);
+                else reportButtons.current.delete(report.id);
+              }}>
                 <div className="map-row-top">
                   <strong>{report.labels.map((label) => LABEL_NAMES[label]).join(" · ")}</strong>
                   <ArrowUpRight size={16} aria-hidden />
@@ -173,14 +234,6 @@ export function MapExplorer({ refreshKey, onReportSelect }: {
         </ul>
       ) : null}
       {state.reports.length > 4 && <button type="button" className="map-show-all" onClick={() => setShowAll((value) => !value)}>{showAll ? "Show fewer reports" : `View all ${state.reports.length} reports`}</button>}
-      {selectedReport && !onReportSelect && (
-        <section className="map-selected-report" aria-label="Selected report details">
-          <div className="map-selected-heading"><h3>{selectedReport.is_demo ? "Sample report" : "Reviewed report"}</h3><button type="button" onClick={() => setSelectedId(null)} aria-label="Close report details"><X size={18} aria-hidden /></button></div>
-          <p>{selectedReport.evidence}</p>
-          <p className="map-detail-coordinates">{formatCoordinates(selectedReport.latitude, selectedReport.longitude)}</p>
-          <ComplaintEditor report={selectedReport} />
-        </section>
-      )}
       <p className="map-footnote">A visual observation is not a water-quality test. Photos stay private.</p>
     </section>
   );

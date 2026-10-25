@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowRight, Check, Camera, LocateFixed, MapPin, LockKeyhole, RotateCcw, ImagePlus } from "lucide-react";
+import { ArrowRight, Check, Camera, LocateFixed, MapPin, LockKeyhole, RotateCcw, ImagePlus, LoaderCircle, Plus } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
+import { PresencePanel } from "@/components/ui/motion";
 import { ACCEPTED_IMAGE_TYPES, LABELS, LABEL_NAMES, SOURCE_NAMES, publishSchema, type DraftReport, type Label, type PublicReport, type ServiceStatus } from "@/lib/contracts";
 import { imageInputError, parseCoordinates } from "@/lib/report-input";
 import { getSessionToken } from "@/lib/supabase/browser";
@@ -22,6 +24,8 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 export function ReportForm({ onPublished }: { onPublished: () => void }) {
   const [stage, setStage] = useState<Stage>("capture");
+  const [hasStarted, setHasStarted] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [service, setService] = useState<ServiceStatus | null>(null);
   const [statusError, setStatusError] = useState(false);
   const [statusAttempt, setStatusAttempt] = useState(0);
@@ -44,7 +48,6 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const previewUrl = useRef("");
   const submitting = useRef(false);
-  const heading = useRef<HTMLHeadingElement>(null);
   const locationRequest = useRef(0);
   const coordinates = parseCoordinates(latitude, longitude);
 
@@ -56,7 +59,6 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
     return () => controller.abort();
   }, [statusAttempt]);
   useEffect(() => () => { URL.revokeObjectURL(previewUrl.current); locationRequest.current += 1; }, []);
-  useEffect(() => { if (stage !== "capture") heading.current?.focus(); }, [stage]);
 
   function selectFile(nextFile?: File) {
     if (!nextFile || busy) return;
@@ -114,7 +116,7 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
       }
       setDraft(nextDraft); setLocalPreview(isLocal); setLabels(nextDraft.labels);
       setEvidence(nextDraft.analysis_source === "manual_fallback" ? "" : nextDraft.evidence);
-      setReviewed(false); setShowPicker(false); setStage("review");
+      setReviewed(false); setShowPicker(false); setHasStarted(true); setStage("review");
     } catch (failure) { setError(failure instanceof Error ? failure.message : "The draft could not be saved. Please try again."); }
     finally { submitting.current = false; setBusy(false); }
   }
@@ -152,13 +154,13 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
 
   const locationFields = <fieldset className="location-fields" disabled={busy}>
     <legend>Observation location</legend>
-    <div className="coordinate-row">
-      <label htmlFor="latitude">Latitude<input id="latitude" name="latitude" inputMode="decimal" autoComplete="off" value={latitude} placeholder="e.g. 22.5726" onChange={(event) => { locationRequest.current += 1; setLocating(false); setLatitude(event.target.value); setReviewed(false); }} /></label>
-      <label htmlFor="longitude">Longitude<input id="longitude" name="longitude" inputMode="decimal" autoComplete="off" value={longitude} placeholder="e.g. 88.3639" onChange={(event) => { locationRequest.current += 1; setLocating(false); setLongitude(event.target.value); setReviewed(false); }} /></label>
-    </div>
-    <div className="location-actions"><button type="button" className="text-button" onClick={locate} disabled={locating}><LocateFixed size={15} />{locating ? "Finding location…" : "Use my location"}</button><button type="button" className="text-button" onClick={() => setShowPicker(!showPicker)} aria-expanded={showPicker}><MapPin size={15} />{showPicker ? "Hide map" : "Choose on map"}</button></div>
+    <div className="location-actions"><button type="button" className="text-button" onClick={locate} disabled={locating}>{locating ? <LoaderCircle className="busy-indicator" size={15} /> : <LocateFixed size={15} />}{locating ? "Finding location…" : "Use my location"}</button><button type="button" className="text-button" onClick={() => setShowPicker(!showPicker)} aria-expanded={showPicker}><MapPin size={15} />{showPicker ? "Hide map" : "Choose on map"}</button></div>
     {locationError && <p className="field-error" role="alert">{locationError}</p>}
-    {showPicker && <LocationPicker latitude={coordinates?.latitude ?? null} longitude={coordinates?.longitude ?? null} onChange={chooseLocation} disabled={busy} />}
+    <AnimatePresence initial={false}>{showPicker && <PresencePanel key="location-picker"><LocationPicker latitude={coordinates?.latitude ?? null} longitude={coordinates?.longitude ?? null} onChange={chooseLocation} disabled={busy} /></PresencePanel>}</AnimatePresence>
+    <div className="coordinate-row">
+      <label htmlFor="latitude">Latitude<input id="latitude" name="latitude" inputMode="text" autoComplete="off" value={latitude} placeholder="e.g. 22.5726" onChange={(event) => { locationRequest.current += 1; setLocating(false); setLatitude(event.target.value); setReviewed(false); }} /></label>
+      <label htmlFor="longitude">Longitude<input id="longitude" name="longitude" inputMode="text" autoComplete="off" value={longitude} placeholder="e.g. 88.3639" onChange={(event) => { locationRequest.current += 1; setLocating(false); setLongitude(event.target.value); setReviewed(false); }} /></label>
+    </div>
   </fieldset>;
 
   return <div className="report-flow" aria-busy={busy}>
@@ -167,17 +169,18 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
       return <li key={label} aria-current={step === index ? "step" : undefined} className={step >= index ? "step-reached" : ""}><span>{step > index ? <Check size={12} /> : index + 1}</span>{label}</li>;
     })}</ol>
 
+    <AnimatePresence initial={false} mode="wait"><PresencePanel key={stage} focusHeading={hasStarted}>
     {stage === "capture" && <form onSubmit={createDraft} noValidate>
-      <div className="section-heading"><h2 ref={heading} tabIndex={-1}>Make an observation</h2><p>One photo. A location. Your perspective.</p></div>
+      <div className="section-heading"><h2 data-step-heading tabIndex={-1}>Make an observation</h2><p>{service && !service.configured ? "Try an unsaved preview with your own photo." : "One photo. A location. Your perspective."}</p></div>
       <fieldset disabled={busy} className="photo-fieldset"><legend className="sr-only">Observation photo</legend>
         <input ref={fileInput} className="sr-only" tabIndex={-1} type="file" id="photo" accept={ACCEPTED_IMAGE_TYPES.join(",")} onChange={(event) => selectFile(event.target.files?.[0])} aria-describedby="photo-help photo-error" />
-        <button className={`photo-picker ${preview ? "has-photo" : ""}`} type="button" onClick={() => fileInput.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (event.dataTransfer.files.length > 1) { setFileError("Choose one photo at a time."); return; } selectFile(event.dataTransfer.files[0]); }} aria-label={preview ? "Change observation photo" : "Choose observation photo"}>
+        <button className={`photo-picker ${preview ? "has-photo" : ""} ${dragging ? "is-dragging" : ""}`} type="button" onClick={() => fileInput.current?.click()} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); if (event.dataTransfer.files.length > 1) { setFileError("Choose one photo at a time."); return; } selectFile(event.dataTransfer.files[0]); }} aria-label={preview ? "Change observation photo" : "Choose observation photo"}>
           {preview ? <>
             {/* Blob URLs are local previews and must not pass through the image optimizer. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={preview} alt="Your selected water observation" onError={() => setFileError("This photo cannot be opened. Please choose another image.")} />
             <span className="change-photo"><ImagePlus size={15} /> Change photo</span>
-          </> : <><Camera size={28} strokeWidth={1.4} /><strong>Choose a photo</strong><span>or drop it here</span></>}
+          </> : <><Camera size={28} strokeWidth={1.4} /><strong>{dragging ? "Drop your photo here" : "Choose a photo"}</strong><span>or drop it here</span></>}
         </button>
         <div className="photo-meta"><span id="photo-help">JPEG, PNG, or WebP · up to 3 MB</span><LockKeyhole size={12} aria-label="Private photo" /></div>
         {file && <p className="file-name">{file.name}</p>}
@@ -186,16 +189,16 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
       {locationFields}
       {statusError ? <p className="connection-note">The connection check failed. <button type="button" className="inline-button" onClick={() => { setStatusError(false); setStatusAttempt((value) => value + 1); }}>Try again</button></p>
         : !service ? <p className="connection-note" role="status">Checking reporting availability…</p>
-        : !service.configured ? <p className="connection-note">Publishing isn’t connected yet. You can try an unsaved preview; your photo stays in this browser.</p>
+        : !service.configured ? <p className="connection-note"><LockKeyhole size={13} />Preview only. Your photo stays in this browser.</p>
         : service.visionMode === "mock" ? <p className="connection-note">Sample mode is on. This report will appear only in Samples.</p>
         : <p className="connection-note"><LockKeyhole size={13} /> Your photo stays private. You decide what gets shared.</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="button primary full-width" type="submit" disabled={busy || !service}>{busy ? "Saving and preparing review…" : service && !service.configured ? "Try a local preview" : "Save & review"}<ArrowRight size={16} /></button>
+      <button className="button primary full-width" type="submit" disabled={busy || !service}>{busy ? "Saving and preparing review…" : service && !service.configured ? "Try a local preview" : "Save & review"}{busy ? <LoaderCircle className="busy-indicator" size={16} /> : <ArrowRight size={16} />}</button>
       <p className="button-note">You’ll review the details before anything is published.</p>
     </form>}
 
     {stage === "review" && draft && <form onSubmit={publish} noValidate>
-      <div className="section-heading"><h2 ref={heading} tabIndex={-1}>Check what you can see</h2><p>{localPreview ? "Local preview · not saved or published" : draft.analysis_source === "vision" ? "An AI suggestion, ready for your review." : draft.is_demo ? "A sample suggestion, ready for your review." : "Describe the photo in your own words."}</p></div>
+      <div className="section-heading"><h2 data-step-heading tabIndex={-1}>Check what you can see</h2><p>{localPreview ? "Local preview · not saved or published" : draft.analysis_source === "vision" ? "An AI suggestion, ready for your review." : draft.is_demo ? "A sample suggestion, ready for your review." : "Describe the photo in your own words."}</p></div>
       {preview && <div className="review-photo">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={preview} alt="Photo to review before publication" />
@@ -209,17 +212,16 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
       <label className="review-confirmation"><input type="checkbox" checked={reviewed} disabled={busy} onChange={(event) => setReviewed(event.target.checked)} /><span>I checked the labels, description, and location. I understand these details will be public and that a photo cannot establish water safety.</span></label>
       {localPreview && <p className="connection-note">This is an unsaved preview. Publishing will be available once reporting is connected.</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="button primary full-width" type="submit" disabled={busy || localPreview || !reviewed}>{busy ? "Publishing…" : draft.is_demo ? "Publish to sample map" : "Publish observation"}<ArrowRight size={16} /></button>
+      <button className="button primary full-width" type="submit" disabled={busy || localPreview || !reviewed}>{busy ? "Publishing…" : draft.is_demo ? "Publish to sample map" : "Publish observation"}{busy ? <LoaderCircle className="busy-indicator" size={16} /> : <ArrowRight size={16} />}</button>
       <button className="text-button restart-button" type="button" disabled={busy} onClick={reset}><RotateCcw size={14} /> Start a new observation</button>
     </form>}
 
     {stage === "published" && published && <>
-      <div className="section-heading"><h2 ref={heading} tabIndex={-1}>{published.is_demo ? "Shared with sample reports" : "Your observation is on the map"}</h2><p>{published.is_demo ? "Open Samples to find your report." : "Thanks for adding a little local perspective."}</p></div>
+      <div className="section-heading"><h2 data-step-heading tabIndex={-1}>{published.is_demo ? "Shared with sample reports" : "Your observation is on the map"}</h2><p>{published.is_demo ? "Open Samples to find your report." : "Thanks for adding a little local perspective."}</p></div>
       <div className="published-summary"><span className="source-line"><Check size={16} />{SOURCE_NAMES[published.analysis_source]}</span><p>{published.evidence}</p><span className="coordinates"><MapPin size={13} />{published.latitude.toFixed(5)}, {published.longitude.toFixed(5)}</span></div>
       <ComplaintEditor report={published} />
-      <button className="text-button restart-button" type="button" onClick={reset}><PlusIcon /> Make another observation</button>
+      <button className="text-button restart-button" type="button" onClick={reset}><Plus size={14} /> Make another observation</button>
     </>}
+    </PresencePanel></AnimatePresence>
   </div>;
 }
-
-function PlusIcon() { return <span aria-hidden="true">+</span>; }

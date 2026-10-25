@@ -14,5 +14,8 @@ export function LocationPicker(props: {
   onChange: (latitude: number, longitude: number) => void;
   disabled?: boolean;
 }) {
-  return <LocationMap {...props} />;
+  return <div className="location-picker">
+    <LocationMap {...props} />
+    <p className="location-picker-help">Tap the map to place a pin, or use the latitude and longitude fields.</p>
+  </div>;
 }

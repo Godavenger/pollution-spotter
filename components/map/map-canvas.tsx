@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import { divIcon, latLngBounds, type LatLngExpression } from "leaflet";
 import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { LABEL_NAMES, type PublicReport } from "@/lib/contracts";
@@ -67,9 +68,10 @@ export function ReportMapCanvas({
   onSelect: (report: PublicReport) => void;
 }) {
   const [tileFailure, setTileFailure] = useState(false);
+  const reduceMotion = useReducedMotion() ?? false;
   return (
     <div className="map-frame">
-      <MapContainer center={KOLKATA} zoom={12} className="spotter-map" scrollWheelZoom={false} aria-label="Map of published observations">
+      <MapContainer key={reduceMotion ? "reduced" : "standard"} center={KOLKATA} zoom={12} className="spotter-map" scrollWheelZoom={false} zoomAnimation={!reduceMotion} markerZoomAnimation={!reduceMotion} fadeAnimation={!reduceMotion} inertia={!reduceMotion} aria-label="Map of published observations">
         <MapTiles onFailure={setTileFailure} />
         <ResizeMap />
         <ReportViewport reports={reports} selectedId={selectedId} />
@@ -82,7 +84,7 @@ export function ReportMapCanvas({
             alt={`Observation at ${formatCoordinates(report.latitude, report.longitude)}`}
             eventHandlers={{ click: () => onSelect(report) }}
           >
-            <Popup>
+            <Popup autoPan={!reduceMotion}>
               <div className="map-popup">
                 <strong>{report.is_demo ? "Sample observation" : "Reviewed observation"}</strong>
                 <p>{report.evidence}</p>
@@ -121,9 +123,10 @@ export function LocationMapCanvas({ latitude, longitude, onChange, disabled = fa
   disabled?: boolean;
 }) {
   const [tileFailure, setTileFailure] = useState(false);
+  const reduceMotion = useReducedMotion() ?? false;
   return (
     <div className={`map-frame location-map-frame${disabled ? " location-map-disabled" : ""}`}>
-      <MapContainer center={KOLKATA} zoom={12} className="spotter-map location-map" scrollWheelZoom={false} aria-label="Choose your observation location on the map">
+      <MapContainer key={reduceMotion ? "reduced" : "standard"} center={KOLKATA} zoom={12} className="spotter-map location-map" scrollWheelZoom={false} zoomAnimation={!reduceMotion} markerZoomAnimation={!reduceMotion} fadeAnimation={!reduceMotion} inertia={!reduceMotion} aria-label="Choose your observation location on the map">
         <MapTiles onFailure={setTileFailure} />
         <ResizeMap />
         <PickerEvents latitude={latitude} longitude={longitude} disabled={disabled} onChange={onChange} />
