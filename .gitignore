@@ -16,6 +16,11 @@ node_modules/
 out/
 .vercel/
 *.log
+*.tsbuildinfo
+.taste-skill/
+.verification/
+test-results/
+playwright-report/
 
 # Operating system metadata
 .DS_Store
