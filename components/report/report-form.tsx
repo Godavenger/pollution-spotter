@@ -2,15 +2,30 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowRight, Check, Camera, LocateFixed, MapPin, LockKeyhole, RotateCcw, ImagePlus, LoaderCircle, Plus } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
-import { PresencePanel } from "@/components/ui/motion";
+import { AnimatePresence, m, useIsPresent } from "framer-motion";
+import { PresencePanel, UI_EASE, useQuietMotion } from "@/components/ui/motion";
 import { ACCEPTED_IMAGE_TYPES, LABELS, LABEL_NAMES, SOURCE_NAMES, publishSchema, type DraftReport, type Label, type PublicReport, type ServiceStatus } from "@/lib/contracts";
 import { imageInputError, parseCoordinates } from "@/lib/report-input";
 import { getSessionToken } from "@/lib/supabase/browser";
 import { LocationPicker } from "@/components/map/location-picker";
 import { ComplaintEditor } from "@/components/complaint/complaint-editor";
+import "./report-motion.css";
 
 type Stage = "capture" | "review" | "published";
+
+function PhotoPreview({ src, quiet, onError }: { src: string; quiet: boolean; onError: () => void }) {
+  const present = useIsPresent();
+  return <m.img className="photo-preview-image" src={src} alt="Your selected water observation" aria-hidden={!present}
+    initial={quiet ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    transition={{ duration: quiet ? 0 : .16, ease: UI_EASE }}
+    onError={() => { if (present) onError(); }} />;
+}
+
+function PublicationMark() {
+  return <svg className="publication-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+    <path className="publication-check" pathLength="1" d="m7 16 6 6L26 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>;
+}
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   let response: Response;
@@ -23,6 +38,7 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export function ReportForm({ onPublished }: { onPublished: () => void }) {
+  const quiet = useQuietMotion();
   const [stage, setStage] = useState<Stage>("capture");
   const [hasStarted, setHasStarted] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -47,6 +63,7 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
   const [error, setError] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const previewUrl = useRef("");
+  const previewUrls = useRef(new Set<string>());
   const submitting = useRef(false);
   const locationRequest = useRef(0);
   const coordinates = parseCoordinates(latitude, longitude);
@@ -58,15 +75,24 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
       .catch(() => { if (!controller.signal.aborted) setStatusError(true); });
     return () => controller.abort();
   }, [statusAttempt]);
-  useEffect(() => () => { URL.revokeObjectURL(previewUrl.current); locationRequest.current += 1; }, []);
+  useEffect(() => {
+    const urls = previewUrls.current;
+    return () => { urls.forEach((url) => URL.revokeObjectURL(url)); urls.clear(); locationRequest.current += 1; };
+  }, []);
+
+  function releaseUnusedPreviews() {
+    previewUrls.current.forEach((url) => {
+      if (url !== previewUrl.current) { URL.revokeObjectURL(url); previewUrls.current.delete(url); }
+    });
+  }
 
   function selectFile(nextFile?: File) {
     if (!nextFile || busy) return;
     const validation = imageInputError(nextFile);
     setFileError(validation || "");
     if (validation) return;
-    URL.revokeObjectURL(previewUrl.current);
     previewUrl.current = URL.createObjectURL(nextFile);
+    previewUrls.current.add(previewUrl.current);
     setPreview(previewUrl.current);
     setFile(nextFile);
     setError("");
@@ -146,10 +172,11 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
   }
 
   function reset() {
-    URL.revokeObjectURL(previewUrl.current); previewUrl.current = "";
+    // The old photo stays decoded until its exiting panel has finished fading.
+    previewUrl.current = "";
     setFile(null); setPreview(""); setFileError(""); setDraft(null); setPublished(null);
     setEvidence(""); setLabels(["unclear"]); setReviewed(false); setError(""); setStage("capture");
-    setLocalPreview(false); setShowPicker(false);
+    setLocalPreview(false); setShowPicker(false); setDragging(false);
   }
 
   const locationFields = <fieldset className="location-fields" disabled={busy}>
@@ -163,24 +190,39 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
     </div>
   </fieldset>;
 
-  return <div className="report-flow" aria-busy={busy}>
-    <ol className="stepper" aria-label="Report progress">{["Observe", "Review", "Share"].map((label, index) => {
-      const step = ["capture", "review", "published"].indexOf(stage);
-      return <li key={label} aria-current={step === index ? "step" : undefined} className={step >= index ? "step-reached" : ""}><span>{step > index ? <Check size={12} /> : index + 1}</span>{label}</li>;
-    })}</ol>
+  const step = ["capture", "review", "published"].indexOf(stage);
 
-    <AnimatePresence initial={false} mode="wait"><PresencePanel key={stage} focusHeading={hasStarted}>
+  return <div className="report-flow" aria-busy={busy}>
+    <div className="report-progress">
+      <span className="report-progress-track" aria-hidden="true"><span className="report-progress-fill" style={{ transform: `scaleX(${step / 2})` }} /></span>
+      <ol className="stepper" aria-label="Report progress">{["Observe", "Review", "Share"].map((label, index) => {
+        const complete = step > index || stage === "published";
+        return <li key={label} aria-current={step === index ? "step" : undefined} className={step >= index ? "step-reached" : ""}>
+          <span className="step-marker" aria-hidden="true">{complete
+            ? <m.span key="complete" className="step-complete" initial={quiet ? false : { opacity: 0, transform: "scale(.9)" }} animate={{ opacity: 1, transform: "scale(1)" }} transition={{ duration: quiet ? 0 : .16, ease: UI_EASE }}><Check size={13} strokeWidth={2} /></m.span>
+            : index + 1}</span>
+          {label}
+        </li>;
+      })}</ol>
+    </div>
+
+    <AnimatePresence initial={false} mode="wait" onExitComplete={releaseUnusedPreviews}><PresencePanel key={stage} focusHeading={hasStarted}>
     {stage === "capture" && <form onSubmit={createDraft} noValidate>
       <div className="section-heading"><h2 data-step-heading tabIndex={-1}>Make an observation</h2><p>{service && !service.configured ? "Try an unsaved preview with your own photo." : "One photo. A location. Your perspective."}</p></div>
       <fieldset disabled={busy} className="photo-fieldset"><legend className="sr-only">Observation photo</legend>
         <input ref={fileInput} className="sr-only" tabIndex={-1} type="file" id="photo" accept={ACCEPTED_IMAGE_TYPES.join(",")} onChange={(event) => selectFile(event.target.files?.[0])} aria-describedby="photo-help photo-error" />
-        <button className={`photo-picker ${preview ? "has-photo" : ""} ${dragging ? "is-dragging" : ""}`} type="button" onClick={() => fileInput.current?.click()} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); if (event.dataTransfer.files.length > 1) { setFileError("Choose one photo at a time."); return; } selectFile(event.dataTransfer.files[0]); }} aria-label={preview ? "Change observation photo" : "Choose observation photo"}>
-          {preview ? <>
-            {/* Blob URLs are local previews and must not pass through the image optimizer. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt="Your selected water observation" onError={() => setFileError("This photo cannot be opened. Please choose another image.")} />
-            <span className="change-photo"><ImagePlus size={15} /> Change photo</span>
-          </> : <><Camera size={28} strokeWidth={1.4} /><strong>{dragging ? "Drop your photo here" : "Choose a photo"}</strong><span>or drop it here</span></>}
+        <button className={`photo-picker ${preview ? "has-photo" : ""} ${dragging ? "is-dragging" : ""}`} type="button" onClick={() => fileInput.current?.click()} onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true); }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false); }} onDrop={(event) => { event.preventDefault(); setDragging(false); if (busy) return; if (event.dataTransfer.files.length > 1) { setFileError("Choose one photo at a time."); return; } selectFile(event.dataTransfer.files[0]); }} aria-label={preview ? "Change observation photo" : "Choose observation photo"}>
+          <span className="photo-artwork">
+            <AnimatePresence initial={false} onExitComplete={releaseUnusedPreviews}>
+              {preview
+                ? <PhotoPreview key={preview} src={preview} quiet={quiet} onError={() => setFileError("This photo cannot be opened. Please choose another image.")} />
+                : <m.span key="empty" className="photo-placeholder" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: quiet ? 0 : .16, ease: UI_EASE }}>
+                  <Camera size={28} strokeWidth={1.4} /><strong>{dragging ? "Drop your photo here" : "Choose a photo"}</strong><span>or drop it here</span>
+                </m.span>}
+            </AnimatePresence>
+          </span>
+          {preview && <span className="change-photo"><ImagePlus size={15} /> Change photo</span>}
+          <span className="photo-drop-outline" aria-hidden="true" />
         </button>
         <div className="photo-meta"><span id="photo-help">JPEG, PNG, or WebP · up to 3 MB</span><LockKeyhole size={12} aria-label="Private photo" /></div>
         {file && <p className="file-name">{file.name}</p>}
@@ -218,7 +260,7 @@ export function ReportForm({ onPublished }: { onPublished: () => void }) {
 
     {stage === "published" && published && <>
       <div className="section-heading"><h2 data-step-heading tabIndex={-1}>{published.is_demo ? "Shared with sample reports" : "Your observation is on the map"}</h2><p>{published.is_demo ? "Open Samples to find your report." : "Thanks for adding a little local perspective."}</p></div>
-      <div className="published-summary"><span className="source-line"><Check size={16} />{SOURCE_NAMES[published.analysis_source]}</span><p>{published.evidence}</p><span className="coordinates"><MapPin size={13} />{published.latitude.toFixed(5)}, {published.longitude.toFixed(5)}</span></div>
+      <div className="published-summary"><span className="source-line"><PublicationMark />{SOURCE_NAMES[published.analysis_source]}</span><p>{published.evidence}</p><span className="coordinates"><MapPin size={13} />{published.latitude.toFixed(5)}, {published.longitude.toFixed(5)}</span></div>
       <ComplaintEditor report={published} />
       <button className="text-button restart-button" type="button" onClick={reset}><Plus size={14} /> Make another observation</button>
     </>}

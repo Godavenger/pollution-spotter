@@ -2,8 +2,10 @@
 
 import { useId, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { AnimatePresence, m } from "framer-motion";
 import type { PublicReport } from "@/lib/contracts";
 import { buildComplaint } from "@/lib/complaint";
+import { UI_EASE, useQuietMotion } from "@/components/ui/motion";
 import "./complaint.css";
 
 export function ComplaintEditor({ report }: { report: PublicReport }) {
@@ -11,6 +13,7 @@ export function ComplaintEditor({ report }: { report: PublicReport }) {
 }
 
 function Editor({ report }: { report: PublicReport }) {
+  const quiet = useQuietMotion();
   const textId = useId();
   const [text, setText] = useState(() => buildComplaint(report));
   const [copyStatus, setCopyStatus] = useState<"idle" | "copying" | "copied" | "failed">("idle");
@@ -61,8 +64,21 @@ function Editor({ report }: { report: PublicReport }) {
           onClick={copyComplaint}
           disabled={!text.trim() || copyStatus === "copying"}
         >
-          {copyStatus === "copied" ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
-          {copyStatus === "copied" ? "Copied" : copyStatus === "copying" ? "Copying…" : "Copy complaint"}
+          <span className="complaint-copy-icon" aria-hidden="true">
+            <AnimatePresence initial={false}>
+              <m.span key={copyStatus === "copied" ? "copied" : "copy"}
+                initial={quiet ? false : { opacity: 0, transform: "scale(.9)" }}
+                animate={{ opacity: 1, transform: "scale(1)" }}
+                exit={{ opacity: 0, transform: quiet ? "scale(1)" : "scale(.9)" }}
+                transition={{ duration: quiet ? 0 : .14, ease: UI_EASE }}>
+                {copyStatus === "copied" ? <Check size={16} /> : <Copy size={16} />}
+              </m.span>
+            </AnimatePresence>
+          </span>
+          <span className="complaint-copy-label">
+            <span className="complaint-copy-sizer" aria-hidden="true">Copy complaint</span>
+            <span>{copyStatus === "copied" ? "Copied" : copyStatus === "copying" ? "Copying…" : "Copy complaint"}</span>
+          </span>
         </button>
         <p role="status" aria-live="polite">
           {copyStatus === "copied" && "Copied to clipboard."}

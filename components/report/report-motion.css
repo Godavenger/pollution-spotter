@@ -1,0 +1,35 @@
+/* The report advances along one line; report data itself never moves for decoration. */
+.report-progress { position: relative; margin-bottom: 24px; }
+.report-progress .stepper { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 0; }
+.report-progress .stepper li { flex-direction: column; align-items: center; gap: 7px; text-align: center; }
+.report-progress .stepper .step-marker { width: 24px; height: 24px; background: var(--surface); }
+.report-progress .stepper .step-reached > .step-marker { color: var(--ground); background: var(--text); border-color: var(--text); }
+.report-progress-track { position: absolute; left: calc(100% / 6); right: calc(100% / 6); top: 11px; height: 2px; background: var(--border); }
+.report-progress-fill { display: block; width: 100%; height: 100%; background: var(--accent); transform-origin: left center; transition: transform 180ms var(--ease-out); }
+.step-complete { display: grid; place-items: center; }
+
+.photo-artwork, .photo-placeholder, .photo-preview-image { position: absolute; inset: 0; }
+.photo-artwork { pointer-events: none; }
+.photo-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.photo-placeholder > svg { margin-bottom: 6px; color: var(--accent); }
+.photo-placeholder > strong { color: var(--text); font-weight: 500; font-size: 15px; }
+.photo-placeholder > span { color: var(--muted); font-size: 12px; }
+.photo-picker .change-photo { pointer-events: none; }
+.photo-drop-outline { position: absolute; inset: 8px; border: 1px solid var(--accent); border-radius: inherit; opacity: 0; transform: scale(.98); pointer-events: none; transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out); }
+.photo-picker.is-dragging .photo-drop-outline { opacity: 1; transform: scale(1); }
+
+/* A small, one-shot stroke confirms a completed publish, never a local preview.
+   Painting one 32px SVG path is bounded; no layout or per-frame React updates. */
+.publication-mark { width: 32px; height: 32px; color: var(--accent); }
+.publication-check { stroke-dasharray: 1; stroke-dashoffset: 0; animation: publication-check-draw 220ms var(--ease-out) both; }
+@keyframes publication-check-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+html[data-input="keyboard"] .report-progress-fill,
+html[data-input="keyboard"] .photo-drop-outline { transition: none; }
+html[data-input="keyboard"] .publication-check { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .report-progress-fill, .photo-drop-outline { transition: none; }
+  .photo-drop-outline { transform: none; }
+  .publication-check { animation: none; }
+}
+@media (max-width: 720px) { .report-progress { margin-bottom: 20px; } }
