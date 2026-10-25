@@ -1,102 +1,126 @@
-# Application setup — Member 2, hour one
+# Application setup
 
-These are future build instructions for the **eight-hour AKI HACKS MVP**. The repository contains planning and presentation materials, not an implemented application. Use the [shared pipeline](../PIPELINE.md) for contracts and acceptance criteria. The private team repository already exists at [Godavenger/pollution-spotter](https://github.com/Godavenger/pollution-spotter); see [GitHub setup](GITHUB_SETUP.md) for access and unassigned roles.
+The local Pollution Spotter application now exists in this repository. These instructions replace the original scaffold-only setup. The [original pipeline](../PIPELINE.md) remains the event plan; [build progress](BUILD_PROGRESS.md) records current implementation and verification. Live Supabase behavior, a live Gemini model, physical-phone checks and deployment still need evidence.
 
-The event hacking window is **10:00 AM–6:00 PM IST on 31 October 2026**. By H1 (11:00 AM), agree on contracts, check credentials/model access and have the scaffold ready. Do not spend the first hour adding optional features.
+## 1. Run the local app
 
-## 1. Prepare the workstation
-
-1. Install a currently supported Node.js LTS release and Git. Open a new terminal after installation.
-2. Check `node --version`, `npm --version` and `git --version`.
-3. Accept the repository invitation if pending, then clone the existing repository. Open a terminal in its **parent directory**, so the starter below becomes a sibling of the clone.
-4. M2 owns dependencies, root configuration and the lockfile. Other members wait for the scaffold commit before adding packages or creating dependent branches.
-
-## 2. Create a separate starter
-
-Run one command at a time. If `pollution-spotter-starter` already exists, choose an unused folder name and use that name throughout.
+Install Node.js 24 LTS and Git, then open a terminal in the repository root. Use the committed lockfile:
 
 ```powershell
-npx create-next-app@latest pollution-spotter-starter
-Set-Location pollution-spotter-starter
-npm install @supabase/supabase-js @google/genai sharp zod
-npm install react-leaflet leaflet
-npm install -D @types/leaflet
+npm ci
 npm run dev
 ```
 
-Choose **TypeScript**, **Tailwind CSS**, **ESLint** and **App Router** in the setup prompts. Choose **no `src/` directory** so the plan's `app/`, `components/` and `lib/` paths match. Keep the `@/*` import alias. Prompt wording may change; choose equivalent settings for the installed version.
+Open the URL printed by Next.js, normally `http://localhost:3000`. In PowerShell, use `npm.cmd` in place of `npm` if execution policy blocks `npm.ps1`.
 
-Open the URL printed by Next.js. A working starter screen is enough for this check. Stop the server with **Ctrl+C** before copying files.
+The app runs without service credentials. Select one JPEG, PNG or WebP up to 3 MB, enter coordinates or choose a map point, and select **Try a local preview**. The review is explicitly unsaved: the photo stays in the browser, refresh clears it, and publishing is disabled. The Samples map shows fictional examples in its own view. OpenStreetMap tiles need an internet connection.
 
-## 3. Merge the scaffold into the existing clone
+A failed connection check or failed real save remains an error. The application does not silently switch a failed save into a successful local preview.
 
-Copy the starter's application files deliberately with File Explorer or an editor:
+## 2. Prepare Supabase
 
-- Copy `app/`, `public/`, `package.json`, the generated `package-lock.json`, `tsconfig.json`, `next-env.d.ts` if present, and Next.js, ESLint and PostCSS configuration.
-- Merge `.gitignore` entries. Ignore `node_modules/`, `.next/`, real `.env*` files and local caches; add `!.env.example` if `.env*` is ignored.
-- Preserve `README.md`, `PIPELINE.md`, the PDF, `.github/`, `docs/`, `planning/`, `github-issues/`, `presentations/` and `scripts/`.
-- Preserve the clone's `.git` directory and history. Do not copy the starter's `.git`, `node_modules`, `.next`, private photos or secrets.
+Create or select the team's Supabase project, then:
 
-Inside the clone, run:
+1. In **Authentication → Sign In / Providers**, enable **anonymous sign-ins**. These are behind-the-scenes sessions, so users do not need a signup screen.
+2. Open the SQL editor and run the complete [database/001_reports.sql](../database/001_reports.sql). It creates the reports table, constraints and indexes, the private `report-photos` bucket, restrictive photo-access policies, and the row-locked `publish_report` function.
+3. Confirm the `report-photos` bucket is private. The migration permits normalized JPEGs up to 3 MB in that bucket.
+4. Copy the project URL, public publishable key and service-role key from the project settings into the local environment file described below.
+
+The migration denies direct report-table access to both `anon` and `authenticated` clients. Supabase anonymous sign-ins use the `authenticated` role. Restrictive Storage policies block direct client access to report photos even if another permissive bucket policy exists. The publication function is executable only by `service_role`.
+
+Do not weaken those rules to fix a browser error. Browser writes must go through the authenticated Next.js API, which verifies the bearer token with Supabase and checks report ownership before using its server-only service key.
+
+## 3. Configure the local environment
+
+If `.env.local` does not already exist, copy the provided template:
 
 ```powershell
-npm install
-npm run dev
+if (-not (Test-Path .env.local)) { Copy-Item .env.example .env.local }
 ```
 
-Confirm the starter still opens, stop the server, inspect `git status`, and commit only the intended scaffold files on the assigned branch. Merge through the reviewed PR workflow. Everyone then updates their clone and runs `npm ci` against the committed lockfile.
+Fill the ignored `.env.local`:
 
-## 4. Configure the services
-
-Create a names-only `.env.example`:
-
-```text
+```dotenv
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+
+VISION_MODE=manual
 GEMINI_API_KEY=
 GEMINI_MODEL=
-VISION_MODE=live
 ```
 
-M2 stores local values in ignored `.env.local` and hosting values in Vercel's environment settings. Only the Supabase URL and public publishable key belong in the browser helper at `lib/supabase/browser.ts`. If the Supabase project exposes a supported legacy anonymous key, use it in the public-key setting. Keep service-role and Gemini keys on the server.
+Only the Supabase URL and publishable key belong in browser code. A supported legacy Supabase anonymous key may be used in the public-key setting. **The service-role key and Gemini key stay server-only:** never give them a `NEXT_PUBLIC_` prefix or put their values in commits, screenshots or test evidence.
 
-In Supabase, enable anonymous authentication, apply the agreed database schema/RLS, and create the private **`report-photos`** Storage bucket. Each write route verifies the anonymous session and report ownership. Anonymous authentication is a behind-the-scenes session, not a signup screen. Deny direct client access to report rows and stored photos for both the `anon` and `authenticated` roles: Supabase anonymous sign-ins use the `authenticated` role. Database and Storage operations go through server routes with the server-only service key after session/ownership checks where required; the public read route exposes only the agreed published-report fields.
+Keep `VISION_MODE=manual` for the first real persistence check. Gemini credentials can remain empty. Stop and restart `npm run dev` after editing environment values, and reload the browser. `NEXT_PUBLIC_*` values are embedded in production browser bundles: after changing them, run a new production build and restart or redeploy it.
 
-M3 smoke-tests an available Flash-family model using an actual image, then records its exact ID in `GEMINI_MODEL`. Use `VISION_MODE=live|manual|mock`:
+`GET /api/status` returns only `configured` and `visionMode`. `configured: true` means the required Supabase values are present in a valid form; it does not prove the database migration, anonymous authentication or Storage is working.
+
+## 4. Verify the persisted manual flow
+
+With manual mode configured:
+
+1. Create an observation with a supported photo and confirmed location. **Save & review** should return a saved private draft.
+2. Edit the visible-condition labels and short description, review the coordinates, and explicitly confirm the review.
+3. Publish the same report. Confirm its pin appears in the real map and remains after a browser refresh. Copy and edit the generated complaint text.
+4. Confirm that the public API exposes only `id`, `published_at`, `latitude`, `longitude`, `labels`, `evidence`, `analysis_source` and `is_demo`. Photos, owner IDs and storage paths must remain private.
+
+The server accepts JPEG/PNG/WebP uploads up to 3 MB, checks decoded content, rejects animation or excessively large dimensions, normalizes to JPEG, and strips metadata before storage. Every real draft has an owner. Publishing requires validated fields and explicit review; a retry returns the original published report and preserves its first timestamp.
+
+These are checks to perform against Supabase, not results claimed by this document.
+
+## 5. Add optional vision suggestions
+
+After the persisted manual flow works, set an API key and an image-capable model available to the team's account. Record the exact model ID successfully tested in `GEMINI_MODEL`, then set `VISION_MODE=live` and restart the server.
 
 | Mode | Behavior |
 | --- | --- |
-| `live` | Call vision with a 12-second application timeout. Failure or invalid output returns `unclear` with `analysis_source=manual_fallback`. |
-| `manual` | Skip the model call and open manual review, labeled `manual_fallback`. Lock this mode by H5 if live access remains unreliable. |
-| `mock` | Use explicit fixtures with `analysis_source=mock`; the server marks the draft `is_demo=true` from creation and preserves that status on publication. |
+| `manual` (default) | Skip Gemini and open manual review with `analysis_source=manual_fallback`. |
+| `live` | Request conservative visible labels within a 12-second application deadline. Missing credentials, provider failures, invalid output or timeout fall back to editable `unclear`/manual review. |
+| `mock` | Use a deterministic sample suggestion. The server sets `is_demo=true` when creating the draft and keeps it in the separate sample feed after publication. Supabase is still required to persist it. |
 
-The browser must not choose analysis provenance or submit an arbitrary `is_demo` value. If draft creation or storage fails, return an error; never fabricate a successful submission.
+The server chooses provenance; the browser cannot set `analysis_source` or `is_demo`. Late provider results cannot modify a published row.
 
-## 5. Build only the agreed core
+Run and record the [six sourced-image smoke checks](../lib/vision/SMOKE_CHECKS.md). They have not been run against a live model yet. They check functional behavior, not accuracy. Every result still needs human review, and none establishes pollutant chemistry, toxicity or drinking-water safety.
 
-| Area | Eight-hour requirement |
-| --- | --- |
-| Photo/location | Accept one JPEG, PNG or WebP up to 3 MB. The server validates and normalizes it with `sharp`, stripping EXIF metadata. Support a manual pin or coordinates; geolocation is optional. |
-| Review/publish | Create an owner-scoped `needs_review` draft. Require the owner to review/edit labels, the visible-description text and location before publishing. Disable repeated create submissions and do not automatically retry creates. Publish updates the same row and preserves the first `published_at`. |
-| Public map | Return only `id`, `published_at`, `latitude`, `longitude`, `labels`, `evidence`, `analysis_source` and `is_demo` for published reports. Photos, owner IDs and storage paths stay private. Load reports initially, after publication and through **Refresh**; use a separate sample view. |
-| Complaint | Generate an editable client-side template from the reviewed report and offer **Copy**. The user verifies and sends it separately. |
-| Checks | M3 covers six focused vision smoke cases; the team checks the deployed phone journey, fallback, ownership and public-field boundaries. |
+## 6. Run automated checks
 
-Use the **Node.js runtime** for image routes because `sharp` requires it. Render Leaflet in a client-only component with SSR disabled and visible OpenStreetMap attribution. M2 owns the shared contract; agree on it before separate implementation diverges.
+```powershell
+npm test
+npm run lint
+npm run typecheck
+npm run build
+npm run test:ui
+```
 
-Defer hotspots, map polling, client image compression, private notes, complaint download/persistence, a 20-case evaluation and extra features. A photograph suggests visible conditions; it does not establish pollutant chemistry, toxicity or water safety.
+Unit tests cover contracts, server ownership/persistence behavior, input decoding, privacy boundaries, vision deadlines and fallback behavior. The browser suite uses Playwright and Microsoft Edge (`channel: msedge` in [playwright.config.ts](../playwright.config.ts)); it starts a local dev server automatically. Install Microsoft Edge if it is unavailable, or deliberately configure another installed Playwright browser before running the suite.
 
-## 6. Deploy and record evidence
+Browser tests can simulate API responses to exercise success and failure states. These tests do not connect to a real Supabase project or establish a working deployed backend. See [BUILD_PROGRESS.md](BUILD_PROGRESS.md) for actual results.
 
-Run the build check provided by the scaffold:
+## 7. Complete the remaining live checks
+
+Before calling the MVP deployed and ready, record evidence for:
+
+- **Authentication and ownership:** unauthenticated writes fail, and a second browser session cannot publish the first session's draft.
+- **Private persistence:** a real upload and draft survive the request; published reports survive reload; public API, direct table access and direct Storage requests do not expose photos or owner information.
+- **Publication integrity:** explicit review is required; repeated and concurrent publication preserve one row and its first timestamp; a missing photo or failed save cannot produce success.
+- **Provenance and fallback:** manual mode works, live provider failure leaves a reviewable draft, and mock reports stay exclusively in Samples.
+- **Phone behavior:** test the complete HTTPS journey on physical iOS/Android hardware, including the keyboard, file picker, map selection, geolocation denied/unavailable, and complaint copying. Browser viewport emulation cannot verify those platform behaviors.
+- **Live vision:** record the sourced-image outcomes and exact model ID, without an unsupported accuracy claim.
+
+Geolocation usually requires HTTPS outside localhost. For a local phone layout check, the dev server listens on the network; open the computer's LAN address on the same network. Use an HTTPS deployment for the complete geolocation and clipboard journey.
+
+## 8. Prepare a deployment
+
+A local production run uses:
 
 ```powershell
 npm run build
+npm start
 ```
 
-Connect the existing repository to Vercel, add the agreed environment values, deploy the merged starter and open the HTTPS URL on a phone. Record the URL and commit in the M2 workstream Issue once that Issue exists. A starter deployment proves setup only; record later core-flow evidence separately.
+Vercel is the planned host. When deploying, connect the repository, set the same environment variables for the intended environment before building, and use the Node.js runtime already set on the image routes. Open the resulting HTTPS URL on a phone and repeat the real-service checks. Record the URL, commit and actual outcomes in the workstream Issue and [build progress](BUILD_PROGRESS.md). No deployment is claimed here.
 
-The shared gates are **H1/11:00 AM** setup, **H3/1:00 PM** persisted manual or mocked slice, **H5/3:00 PM** live core or locked manual fallback, **H7/5:00 PM** feature freeze and **H8/6:00 PM** demo ready. Keep the final hour for blocking fixes, rehearsal and backup capture. See [GitHub setup](GITHUB_SETUP.md) for the gate checklist.
+The original event gates remain **H1/11:00 setup, H3/13:00 persisted slice, H5/15:00 core or manual fallback, H7/17:00 freeze, H8/18:00 ready** on 31 October 2026. See [GitHub setup](GITHUB_SETUP.md) for the historical collaboration plan. Creating code does not complete those acceptance gates or update their checkboxes automatically.
 
-These commands are instructions. Generating this planning pack does not run an application build, deploy a site or complete application tests.
+The original PDF, ZIP and presentation remain planning artifacts. Hold off on `python scripts/build_pack.py` until its templates are updated: it would regenerate README.md with the original scaffold-era status and overwrite the new runtime notes.

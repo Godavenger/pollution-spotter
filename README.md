@@ -1,70 +1,80 @@
-# Pollution Spotter - AKI HACKS planning pack
+# Pollution Spotter
 
-A four-person, **eight-hour MVP plan** for AKI HACKS on **31 October 2026, 10:00-18:00 IST**, at IEM, GN Block, Sector V, Kolkata. Upload a photo and location, review a conservative visual suggestion or manual fallback, publish a map report, and copy an editable complaint.
+A photo, a reviewed observation, and a public map pin. Pollution Spotter now has a local application implementation alongside the original four-person **AKI HACKS planning pack** for **31 October 2026, 10:00–18:00 IST**, at IEM, GN Block, Sector V, Kolkata.
 
-**Current status:** the private [GitHub repository](https://github.com/Godavenger/pollution-spotter) exists. `Sangeeta2006451` has accepted write access; `Shivi3123` and `deeparkai32109-alt` have pending write invitations. `Godavenger` is admin; M1-M4 role assignments are unconfirmed. **The application has not been built.** The repository has no workstream Issues or application deployment. The presentation describes a proposed project; no app results or successful submission are claimed.
+**Current status:** the Next.js app, report/review interface, server API, private-storage migration, optional Gemini adapter, map, and complaint editor are implemented locally. Supabase and live Gemini integration, physical-phone checks, and an application deployment still need verification. See [build progress](docs/BUILD_PROGRESS.md) for the checks actually run. Local previews and sample pins are not published reports or evidence of a working deployment.
 
-## Start here
+## Run the app
 
-1. Read the [event brief](docs/AKI_HACKS_EVENT_BRIEF.md) and the [18-page pipeline PDF](Pollution_Spotter_4_Member_Pipeline.pdf).
-2. Agree who fills the four unassigned role slots. Follow [GitHub setup](docs/GITHUB_SETUP.md) to use the supplied Issue bodies.
-3. Follow six tasks per role and the shared gates: **H1 setup; H3 integrated slice; H5 core or manual fallback; H7 freeze; H8 ready**.
-4. Review the [six-slide selection PPT](presentations/Pollution_Spotter_AKI_HACKS.pptx) and [PDF preview](presentations/Pollution_Spotter_AKI_HACKS.pdf), built from the [official template](presentations/AKI_HACKS_Official_PPT_Template.pptx). The confirmed team name is **Pollution Spotter** and team leader is **Sharanya Mondal**. Follow the announced submission instructions.
+Use Node.js 24 LTS and npm from this repository's root:
 
-The detailed schedule lists registration at 08:00-10:00 and judging at 18:00-20:00; the header/calendar has a 09:00 start discrepancy. Confirm arrival with organizers. Permission to use code prepared before the event is unknown; this pack does not assume it.
+```powershell
+npm ci
+npm run dev
+```
 
-## The eight-hour scope
+Open the local URL printed by Next.js, normally [http://localhost:3000](http://localhost:3000). Without service credentials, choose a photo and location to try an **unsaved local review preview**. Publishing stays disabled, the photo stays in the browser, and a separate Samples view contains fictional examples. Map tiles require internet access.
 
-The core is one persisted end-to-end flow: **photo + location -> private draft -> AI/manual suggestion -> mandatory human review -> publish -> public map -> complaint Copy**.
+To enable real persistence, follow [application setup](docs/APP_SETUP.md): configure Supabase, run [database/001_reports.sql](database/001_reports.sql), enable anonymous sign-ins, and fill the ignored `.env.local` using [.env.example](.env.example). Start with `VISION_MODE=manual`. Restart the dev server after changing environment values; production changes to `NEXT_PUBLIC_*` values require a new build.
 
-Photos stay private. Only confirmed labels, a reviewed short description, selected coordinates, publication time and source metadata appear publicly. Samples stay in a clearly labeled separate view. Failed uploads, analysis or saves must not produce invented success.
+## The implemented flow
 
-Hotspots, polling, photo galleries, client compression, complaint downloads/persistence, large model evaluations and broad production hardening are deferred. Six focused visual smoke cases check behavior; they do not establish model accuracy. If Gemini is unavailable, the manual-review flow remains useful. If safe persistence fails, the team must describe the demo as an incomplete prototype.
+**Photo + location → private draft → AI/manual suggestion → mandatory human review → publish → public map → editable complaint Copy.**
 
-## Contents
+The app accepts one JPEG, PNG or WebP up to 3 MB. Server routes verify session ownership, normalize the photo and remove metadata, and store it in a private bucket. Only confirmed labels, a reviewed short description, selected coordinates, publication time and source metadata appear publicly. Retrying publication keeps the same report and its first publication time. Save failures remain errors; they do not become successful previews.
 
-| File | Purpose |
+Gemini is optional. Manual review works without an AI key once Supabase is configured. A 12-second deadline or invalid model output falls back to manual review. Mock mode remains separately labeled from real reports. A photo cannot establish chemistry, toxicity or water safety. Complaint text is editable and copied locally; the app does not send it.
+
+The stack is Next.js App Router, TypeScript and Tailwind; Supabase Postgres, private Storage and anonymous auth; server-side Gemini through `@google/genai`; React Leaflet with attributed OpenStreetMap tiles. Vercel remains the planned deployment target.
+
+## Check changes
+
+```powershell
+npm test
+npm run lint
+npm run typecheck
+npm run build
+npm run test:ui
+```
+
+The browser suite starts a local server and uses Microsoft Edge through Playwright. [Application setup](docs/APP_SETUP.md) explains browser prerequisites and the remaining live-service checks. Automated tests, simulated API responses and browser viewport checks do not establish deployed persistence, model accuracy or physical-phone behavior.
+
+## Project files
+
+| Path | Purpose |
 | --- | --- |
-| [Pollution_Spotter_4_Member_Pipeline.pdf](Pollution_Spotter_4_Member_Pipeline.pdf) | Printable A4 playbook with contracts, role tasks, checks and demo guidance. |
-| [PIPELINE.md](PIPELINE.md) | Complete editable text of the playbook. |
-| [GITHUB_TRACKER.md](GITHUB_TRACKER.md) | 24 unchecked implementation tasks across four unassigned roles. |
-| [docs/AKI_HACKS_EVENT_BRIEF.md](docs/AKI_HACKS_EVENT_BRIEF.md) | Verified event details, schedule, template requirements and open questions. |
-| [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md) | Existing repository, invitations, Issues and collaboration setup. |
-| [docs/APP_SETUP.md](docs/APP_SETUP.md) | Proposed scaffold, dependencies and minimum service setup. |
-| [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) | Slide narrative, source/template context and presentation rebuild instructions. |
-| [github-issues/](github-issues/) | Six-task Issue bodies for each role. |
-| [.github/](.github/) | Workstream, bug and PR templates plus label definitions. |
-| [presentations/Pollution_Spotter_AKI_HACKS.pptx](presentations/Pollution_Spotter_AKI_HACKS.pptx) | Six-slide selection proposal using the official structure. |
-| [presentations/Pollution_Spotter_AKI_HACKS.pdf](presentations/Pollution_Spotter_AKI_HACKS.pdf) | Shareable presentation preview. |
-| [presentations/AKI_HACKS_Official_PPT_Template.pptx](presentations/AKI_HACKS_Official_PPT_Template.pptx) | Original official template for reference. |
-| [planning/](planning/) | Reviewed JSON sources and the current planning contract. |
-| [scripts/build_pack.py](scripts/build_pack.py) | Rebuilds and validates the planning PDF, Markdown and handoff ZIP. |
-| [scripts/build_presentation.py](scripts/build_presentation.py) | Rebuilds the proposal PPTX from the preserved official template. |
+| [app/](app/) and [components/](components/) | Working report, review, map, guide and complaint interface; API routes. |
+| [lib/contracts.ts](lib/contracts.ts) | Shared validation, labels and public report fields. |
+| [lib/server/](lib/server/) | Ownership checks, image normalization, persistence and publication. |
+| [lib/vision/](lib/vision/) | Optional Gemini adapter, manual fallback and [live smoke checklist](lib/vision/SMOKE_CHECKS.md). |
+| [database/001_reports.sql](database/001_reports.sql) | Supabase reports table, private bucket rules and atomic publication function. |
+| [tests/](tests/) | Application unit and browser tests. |
+| [docs/APP_SETUP.md](docs/APP_SETUP.md) | Local setup, service configuration and deployment prerequisites. |
+| [docs/BUILD_PROGRESS.md](docs/BUILD_PROGRESS.md) | Implementation stages and recorded verification. |
+| [Pollution_Spotter_4_Member_Pipeline.pdf](Pollution_Spotter_4_Member_Pipeline.pdf) | Original 18-page event planning playbook; historical implementation status. |
+| [PIPELINE.md](PIPELINE.md) and [planning/](planning/) | Original editable plan, reviewed JSON sources and planning contract. |
+| [GITHUB_TRACKER.md](GITHUB_TRACKER.md) and [github-issues/](github-issues/) | Original 24-task tracker and proposed workstream Issue bodies. |
+| [docs/AKI_HACKS_EVENT_BRIEF.md](docs/AKI_HACKS_EVENT_BRIEF.md) | Event details, schedule, template requirements and open questions. |
+| [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md) and [.github/](.github/) | Collaboration guidance, Issue/PR templates and labels. |
+| [docs/PRESENTATION_GUIDE.md](docs/PRESENTATION_GUIDE.md) | Presentation narrative and rebuild guidance. |
+| [Selection PPT](presentations/Pollution_Spotter_AKI_HACKS.pptx) and [PDF preview](presentations/Pollution_Spotter_AKI_HACKS.pdf) | Selection proposal; application results are not implied. |
+| [Official template](presentations/AKI_HACKS_Official_PPT_Template.pptx) | Preserved original presentation template. |
+| [scripts/](scripts/) | Original planning-pack and presentation generators. |
 
-The [handoff ZIP](Pollution_Spotter_GitHub_Pack.zip) bundles the plan, presentation, official template, setup documents and build sources. Extract it before uploading files. It excludes preview renders, caches, credentials and the ZIP itself.
+## Event plan and historical status
 
-## Completion and implementation
+The original planning snapshot recorded the private [Godavenger/pollution-spotter](https://github.com/Godavenger/pollution-spotter) repository with `Godavenger` as admin, `Sangeeta2006451` having accepted write access, and invitations for `Shivi3123` and `deeparkai32109-alt` pending. M1–M4 were unassigned, and no workstream Issues or deployment existed at that check. These are historical access/tracking statements, not a fresh verification. The confirmed team name is **Pollution Spotter** and team leader is **Sharanya Mondal**.
 
-Use the four GitHub Issues as the live progress record once created. A task is done only after its Done condition passes and evidence is attached. Repository Markdown requires edits/commits; PDF boxes are printable. **These copies do not synchronize.** Leave unfinished work unchecked at the event deadline.
+The shared event gates remain **H1 setup; H3 integrated slice; H5 core or manual fallback; H7 freeze; H8 ready**. Original checkboxes have not been marked complete by creating source files. Record acceptance evidence in the workstream Issues once available; Markdown, PDF and Issue boxes do not synchronize.
 
-The proposed stack is Next.js App Router, TypeScript and Tailwind; Supabase Postgres/private Storage/anonymous auth; server-side Gemini through `@google/genai`; React Leaflet with attributed OpenStreetMap tiles; Vercel. M3 verifies an available model and records the exact ID. There is no model training or automatic complaint sending. Follow the shared contracts before coding.
+Registration is listed as 08:00–10:00 and judging as 18:00–20:00; the event header/calendar has a 09:00 start discrepancy. The original brief did not establish permission to use pre-event code. Refer to the [event brief](docs/AKI_HACKS_EVENT_BRIEF.md) and organizers for the applicable event rules.
 
-## Rebuild this pack
+Hotspots, polling, photo galleries, client compression, complaint downloads/persistence and broader production hardening remain deferred. Six focused vision smoke cases check behavior; they are not an accuracy benchmark.
 
-Use Python 3.10+:
+## Original generated pack
 
-```powershell
-python -m pip install reportlab pypdf Pillow PyMuPDF
-python scripts/build_pack.py
-```
+The [handoff ZIP](Pollution_Spotter_GitHub_Pack.zip), pipeline PDF and generated planning documents remain the original planning artifacts; they have not been refreshed to package this application.
 
-The builder uses Segoe UI, Arial or DejaVu Sans. It validates all 18 PDF pages, 24 task IDs, eight-hour task windows, unchecked tracker/Issue boxes, local links and layout bounds. Preview contact sheets and a layout report go to `planning/qa/`, excluded from Git and the ZIP. These checks validate planning artifacts; **application tests have not been run**.
+**Hold off on `python scripts/build_pack.py` until its templates are updated:** it regenerates this README and would overwrite the application setup/status notes with the original planning text. The original builder requires Python 3.10+, ReportLab, pypdf, Pillow and PyMuPDF and validates the 18-page planning PDF, task IDs, links and layout. Those checks validate documents, not the app.
 
-To rebuild the editable presentation:
-
-```powershell
-python -m pip install defusedxml
-python scripts/build_presentation.py
-```
-
-Export the rebuilt PPTX to PDF through PowerPoint or a compatible renderer, then rerun `python scripts/build_pack.py` to refresh the ZIP. See the [presentation guide](docs/PRESENTATION_GUIDE.md) for details.
+The presentation builder requires `defusedxml` and uses the preserved official template. See the [presentation guide](docs/PRESENTATION_GUIDE.md) before rebuilding presentation assets.
