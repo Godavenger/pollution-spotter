@@ -1,0 +1,13 @@
+.complaint-editor { margin-top: 24px; text-align: left; }
+.complaint-heading h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
+.complaint-heading p, .complaint-actions p { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.complaint-editor label { display: block; margin: 20px 0 8px; font-size: 14px; font-weight: 500; }
+.complaint-editor textarea { display: block; width: 100%; min-height: 220px; max-height: 520px; resize: vertical; padding: 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--ground); color: var(--text); font: inherit; font-size: 16px; line-height: 1.6; }
+.complaint-sample-note { padding: 10px 12px; background: var(--surface); border-radius: 8px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.complaint-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.complaint-actions p { margin: 0; flex: 1; min-width: 160px; }
+.complaint-copy { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border: 1px solid var(--control); border-radius: 999px; background: var(--ground); color: var(--text); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; touch-action: manipulation; user-select: none; }
+.complaint-copy:disabled { cursor: default; color: var(--muted); }
+.complaint-copy:active:not(:disabled) { background: var(--surface); }
+.complaint-copy:focus-visible, .complaint-editor textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) { .complaint-copy:hover:not(:disabled) { border-color: var(--text); } }
