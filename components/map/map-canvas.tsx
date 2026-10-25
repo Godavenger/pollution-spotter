@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useReducedMotion } from "framer-motion";
+import { Compass } from "lucide-react";
 import { divIcon, latLngBounds, type LatLngExpression } from "leaflet";
 import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { LABEL_NAMES, type PublicReport } from "@/lib/contracts";
@@ -12,7 +13,7 @@ import "./map.css";
 const KOLKATA: LatLngExpression = [22.5726, 88.3639];
 const pin = divIcon({
   className: "spotter-map-pin",
-  html: '<svg width="28" height="36" viewBox="0 0 28 36" aria-hidden="true"><path d="M14 1C6.8 1 1 6.8 1 14c0 9.2 13 21 13 21s13-11.8 13-21C27 6.8 21.2 1 14 1Z" fill="currentColor" stroke="white" stroke-width="2"/><circle cx="14" cy="14" r="4" fill="white"/></svg>',
+  html: '<svg width="28" height="36" viewBox="0 0 28 36" aria-hidden="true"><path d="M14 1C6.8 1 1 6.8 1 14c0 9.2 13 21 13 21s13-11.8 13-21C27 6.8 21.2 1 14 1Z" fill="currentColor" stroke="var(--surface)" stroke-width="2"/><circle cx="14" cy="14" r="4" fill="var(--surface)"/></svg>',
   iconSize: [44, 44],
   iconAnchor: [22, 43],
   popupAnchor: [0, -36],
@@ -94,6 +95,7 @@ export function ReportMapCanvas({
           </Marker>
         ))}
       </MapContainer>
+      <div className="map-context-strip"><span><Compass size={14} strokeWidth={1.7} aria-hidden />Drag to explore</span><span>{reports.length ? "Select a pin or a report" : "Report locations appear as pins"}</span></div>
       {tileFailure && <p className="map-tile-notice" role="status">Map tiles could not load. Report coordinates and details are available below.</p>}
     </div>
   );

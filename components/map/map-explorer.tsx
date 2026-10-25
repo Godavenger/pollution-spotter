@@ -3,9 +3,9 @@
 import dynamic from "next/dynamic";
 import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { AnimatePresence } from "framer-motion";
-import { ArrowUpRight, MapPin, RefreshCw, X } from "lucide-react";
+import { ArrowUpRight, CircleHelp, Droplets, Leaf, MapPin, RefreshCw, Trash2, Waves, X } from "lucide-react";
 import { z } from "zod";
-import { coordinatesSchema, labelsSchema, LABEL_NAMES, SOURCE_NAMES, type PublicReport } from "@/lib/contracts";
+import { coordinatesSchema, labelsSchema, LABEL_NAMES, SOURCE_NAMES, type Label, type PublicReport } from "@/lib/contracts";
 import { formatCoordinates, formatPublishedDate } from "@/lib/complaint";
 import { SAMPLE_REPORT_NOTICE, SAMPLE_REPORTS } from "@/lib/sample-reports";
 import { ComplaintEditor } from "@/components/complaint/complaint-editor";
@@ -36,6 +36,14 @@ type ReportState = {
   error: string | null;
   updatedAt: string | null;
 };
+
+const labelSymbols = {
+  algal_bloom: Leaf,
+  oil_sheen: Waves,
+  garbage: Trash2,
+  no_visible_pollution: Droplets,
+  unclear: CircleHelp,
+} satisfies Record<Label, typeof Leaf>;
 
 function focusReportHeading(heading: HTMLHeadingElement | null) {
   if (!heading || heading.closest("[inert]")) return;
@@ -202,7 +210,10 @@ export function MapExplorer({ refreshKey, onReportSelect }: {
       {state.error && (
         <div className="map-report-notice" role="status">
           <p>{state.error}{state.reports.length > 0 && view === "real" ? " Previously loaded reports are still shown." : ""}</p>
-          {!state.loading && <button type="button" onClick={refresh}>Try again</button>}
+          <div className="map-notice-actions">
+            {view === "real" && !state.reports.length && <button className="map-sample-action" type="button" onClick={() => changeView("samples")}>Explore samples <ArrowUpRight className="map-action-arrow" size={15} aria-hidden /></button>}
+            {!state.loading && <button type="button" onClick={refresh}>Try again</button>}
+          </div>
         </div>
       )}
       {state.loading && !state.reports.length ? (
@@ -215,22 +226,23 @@ export function MapExplorer({ refreshKey, onReportSelect }: {
         </div>
       ) : state.reports.length > 0 ? (
         <ul className="map-report-list" aria-label={`${scopeLabel} with coordinates`}>
-          {visibleReports.map((report) => (
-            <li key={report.id}>
+          {visibleReports.map((report) => {
+            const LabelSymbol = labelSymbols[report.labels[0]];
+            return <li key={report.id}>
               <button className="map-report-row" type="button" aria-pressed={report.id === selectedId} onClick={() => selectReport(report)} ref={(element) => {
                 if (element) reportButtons.current.set(report.id, element);
                 else reportButtons.current.delete(report.id);
               }}>
                 <div className="map-row-top">
-                  <strong>{report.labels.map((label) => LABEL_NAMES[label]).join(" · ")}</strong>
-                  <ArrowUpRight size={16} aria-hidden />
+                  <div className="map-report-identity"><LabelSymbol className="map-category-symbol" size={18} strokeWidth={1.7} aria-hidden /><strong>{report.labels.map((label) => LABEL_NAMES[label]).join(" · ")}</strong></div>
+                  <ArrowUpRight className="map-row-open" size={16} aria-hidden />
                 </div>
                 <p>{report.evidence}</p>
                 <div className="map-row-meta"><span>{SOURCE_NAMES[report.analysis_source]}</span><time dateTime={report.published_at}>{formatPublishedDate(report.published_at)}</time></div>
                 <span className="map-row-coordinates">{formatCoordinates(report.latitude, report.longitude)}</span>
               </button>
-            </li>
-          ))}
+            </li>;
+          })}
         </ul>
       ) : null}
       {state.reports.length > 4 && <button type="button" className="map-show-all" onClick={() => setShowAll((value) => !value)}>{showAll ? "Show fewer reports" : `View all ${state.reports.length} reports`}</button>}
