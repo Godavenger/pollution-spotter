@@ -1,0 +1,45 @@
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 9px 13px;
+  border: 1px solid var(--control);
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: transform 120ms cubic-bezier(.23, 1, .32, 1);
+}
+
+.theme-toggle[aria-pressed="true"] { color: var(--accent); background: var(--active); }
+.theme-toggle:disabled { cursor: default; }
+.theme-toggle:active:not(:disabled) { transform: scale(.97); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.theme-toggle-icon { position: relative; display: block; width: 20px; height: 20px; flex: none; }
+.theme-toggle-glyph, .theme-toggle-fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+.theme-toggle-fallback .theme-toggle-moon { display: none; }
+[data-theme="dark"] .theme-toggle-fallback .theme-toggle-sun { display: none; }
+[data-theme="dark"] .theme-toggle-fallback .theme-toggle-moon { display: block; }
+.theme-toggle-label { white-space: nowrap; }
+
+@media (hover: hover) and (pointer: fine) {
+  .theme-toggle:hover:not(:disabled) { background: var(--active); border-color: var(--accent); }
+}
+@media (max-width: 1020px) {
+  .theme-toggle { padding: 10px; }
+  .theme-toggle-label { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle { transition: none; }
+  .theme-toggle:active:not(:disabled) { transform: none; }
+}
+[data-input="keyboard"] .theme-toggle { transition: none; }
+[data-input="keyboard"] .theme-toggle:active:not(:disabled) { transform: none; }
